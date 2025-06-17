@@ -19,101 +19,39 @@ A modern AI-powered application built with Next.js, PostgreSQL (with pgvector), 
 - Docker and Docker Compose
 - Git
 
-## 🛠️ Quick Start with Docker Compose
+## � Quick Start
 
-The easiest way to run the entire application stack:
+The easiest way to run the entire application stack - just one command:
 
-1. **Clone and setup**
-   ```bash
-   git clone <your-repo-url>
-   cd ai-app
-   cp .env.example .env
-   ```
-
-2. **Start everything with Docker Compose**
-   ```bash
-   docker-compose up -d
-   ```
-
-3. **Run database migrations**
-   ```bash
-   npm run db:migrate
-   ```
-
-4. **Access the application**
-   - App: http://localhost:3000
-   - Drizzle Studio: http://localhost:4983 (run `npm run db:studio`)
-
-## 🔧 Manual Setup
-
-### Environment Variables
-
-Create a `.env` file in the root directory:
-
-```env
-# Database
-DATABASE_URL="postgresql://postgres:password@localhost:5432/ai-app-template"
-
-# Redis
-REDIS_URL="redis://:redis-pw@localhost:6379"
-
-# Auth
-AUTH_SECRET="your-auth-secret-here"
-NEXTAUTH_URL="http://localhost:3000"
-
-# Node Environment
-NODE_ENV="development"
+```bash
+git clone <your-repo-url>
+cd ai-app
+docker-compose up
 ```
 
-### Database Setup
+That's it! The `docker-compose.yml` file includes:
+- **PostgreSQL** with pgvector extension
+- **Redis** for caching
+- **Next.js application** in development mode
+- **All environment variables** pre-configured
 
-1. **Start PostgreSQL with pgvector**
-   ```bash
-   ./start-database.sh
-   ```
-   Or manually with Docker:
-   ```bash
-   docker run -d \
-     --name ai-app-template-postgres \
-     -e POSTGRES_USER=postgres \
-     -e POSTGRES_PASSWORD=password \
-     -e POSTGRES_DB=ai-app-template \
-     -p 5432:5432 \
-     pgvector/pgvector:pg17
-   ```
+### What happens automatically:
 
-2. **Generate and run migrations**
-   ```bash
-   npm run db:generate
-   npm run db:migrate
-   ```
+1. **Services start** - PostgreSQL, Redis, and the Next.js app
+2. **Dependencies install** - npm install runs automatically
+3. **Database migrations** - Applied when the app starts
+4. **Health checks** - Ensures services are ready before starting the app
 
-### Redis Setup
+### Access your application:
 
-1. **Start Redis**
-   ```bash
-   ./start-redis.sh
-   ```
-   Or manually with Docker:
-   ```bash
-   docker run -d \
-     --name ai-app-template-redis \
-     -p 6379:6379 \
-     redis \
-     redis-server --requirepass "redis-pw"
-   ```
+- **App**: http://localhost:3000
+- **Database**: localhost:5432 (postgres/password)
+- **Redis**: localhost:6379 (password: redis-pw)
+- **Database GUI**: Run `docker-compose exec app npm run db:studio` then visit http://localhost:4983
 
-### Application Setup
+### For production:
 
-1. **Install dependencies**
-   ```bash
-   npm install
-   ```
-
-2. **Run the development server**
-   ```bash
-   npm run dev
-   ```
+Change the `AUTH_SECRET` environment variable in `docker-compose.yml` to a secure random string.
 
 ## 📦 Available Scripts
 
@@ -136,7 +74,7 @@ NODE_ENV="development"
 - `npm run format:write` - Format code with Prettier
 - `npm run format:check` - Check code formatting
 
-## 🗄️ Database Migrations with Drizzle
+## ️ Database Migrations with Drizzle
 
 ### Creating Migrations
 
@@ -172,41 +110,34 @@ npm run db:push
 
 ## 🐳 Docker Configuration
 
-### Using Docker Compose (Recommended)
+The `docker-compose.yml` includes everything you need:
+- **PostgreSQL** with pgvector extension
+- **Redis** for caching and sessions
+- **Next.js application** in development mode
+- **Pre-configured environment variables**
+- **Health checks** to ensure services start in the correct order
+- **Volume mounts** for development hot-reloading
 
-The `docker-compose.yml` includes:
-- PostgreSQL with pgvector
-- Redis
-- The Next.js application
+### Common Docker Commands
 
 ```bash
-# Start all services
-docker-compose up -d
+# Start all services (with logs visible)
+docker-compose up
 
-# View logs
-docker-compose logs -f
+# Start all services in background
+docker-compose up -d
 
 # Stop all services
 docker-compose down
 
-# Rebuild and start
-docker-compose up --build -d
-```
+# View logs
+docker-compose logs -f
 
-### Individual Container Management
+# Rebuild and start (after code changes to Dockerfile)
+docker-compose up --build
 
-**PostgreSQL:**
-```bash
-./start-database.sh
-# or
-docker run -d --name ai-app-postgres -e POSTGRES_USER=postgres -e POSTGRES_PASSWORD=password -e POSTGRES_DB=ai-app-template -p 5432:5432 pgvector/pgvector:pg17
-```
-
-**Redis:**
-```bash
-./start-redis.sh
-# or
-docker run -d --name ai-app-redis -p 6379:6379 redis redis-server --requirepass "redis-pw"
+# Access database GUI
+docker-compose exec app npm run db:studio
 ```
 
 ## 🔒 Authentication
@@ -242,32 +173,15 @@ src/
 
 ### Production Environment Variables
 
-Ensure these are set in production:
-- `AUTH_SECRET` - Secure random string
-- `DATABASE_URL` - Production database URL
-- `REDIS_URL` - Production Redis URL
+For production, update the environment variables in `docker-compose.yml`:
+- `AUTH_SECRET` - Change to a secure random string (required!)
 - `NODE_ENV=production`
+- `NEXTAUTH_URL` - Set to your production domain
 
 ### Docker Deployment
 
-1. **Build and deploy with Docker Compose**
-   ```bash
-   docker-compose -f docker-compose.prod.yml up -d
-   ```
+```bash
+docker-compose up -d
+```
 
-2. **Run migrations**
-   ```bash
-   docker-compose exec app npm run db:migrate
-   ```
-
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Run tests and linting
-5. Submit a pull request
-
-## 📝 License
-
-This project is licensed under the MIT License.
+The application includes health checks and will automatically run migrations on startup.
