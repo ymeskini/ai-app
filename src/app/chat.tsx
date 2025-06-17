@@ -10,7 +10,7 @@ interface ChatProps {
 const messages = [
   {
     id: "1",
-    content: "Hello, how are you Youssef M?",
+    content: "Hello! How are you today?",
     role: "user",
   },
 ];
