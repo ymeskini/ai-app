@@ -40,6 +40,7 @@ services:
     restart: unless-stopped
     ports:
       - "3000:3000"
+      - "4983:4983"
     environment:
       - DATABASE_URL=postgresql://postgres:password@postgres:5432/ai-app-template
       - REDIS_URL=redis://:redis-pw@redis:6379
