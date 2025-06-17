@@ -47,7 +47,7 @@ That's it! The `docker-compose.yml` file includes:
 - **App**: http://localhost:3000
 - **Database**: localhost:5432 (postgres/password)
 - **Redis**: localhost:6379 (password: redis-pw)
-- **Database GUI**: Run `docker-compose exec app npm run db:studio` then visit http://localhost:4983
+- **Database GUI**: Run `docker-compose exec app npm run db:studio` then visit https://local.drizzle.studio
 
 ### For production:
 
@@ -88,23 +88,28 @@ Change the `AUTH_SECRET` environment variable in `docker-compose.yml` to a secur
 3. **Review the generated migration** in the `drizzle/` directory
 
 4. **Apply the migration**
-   ```bash
-   npm run db:migrate
-   ```
+```bash
+docker-compose exec app npm run db:migrate
+```
 
 ### Database Studio
 
 Access Drizzle Studio for visual database management:
 ```bash
-npm run db:studio
+docker-compose exec app npm run db:studio
 ```
 
 ### Push Schema (Development Only)
 
+```bash
+docker-compose exec app npm run db:push
+```
+
 For rapid prototyping, you can push schema changes directly:
 ```bash
-npm run db:push
+docker-compose exec app npm run db:push
 ```
+The schema can be found at `src/server/db/schema.ts`
 
 ⚠️ **Warning**: This bypasses migration generation and should only be used in development.
 
