@@ -36,17 +36,12 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+    env_file: .env
     container_name: ai-app
     restart: unless-stopped
     ports:
       - "3000:3000"
       - "4983:4983"
-    environment:
-      - DATABASE_URL=postgresql://postgres:password@postgres:5432/ai-app-template
-      - REDIS_URL=redis://:redis-pw@redis:6379
-      - AUTH_SECRET=your-super-secret-auth-secret-change-this-in-production
-      - NODE_ENV=development
-      - NEXTAUTH_URL=http://localhost:3000
     depends_on:
       postgres:
         condition: service_healthy

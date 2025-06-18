@@ -13,15 +13,12 @@ A modern AI-powered application built with Next.js, PostgreSQL (with pgvector), 
 - **TypeScript** for type safety
 - **Docker** support for easy deployment
 
-## 📋 Prerequisites
 
-- Node.js 18+ and npm/yarn/pnpm
-- Docker and Docker Compose
-- Git
-
-## � Quick Start
+## 🚀 Quick Start
 
 The easiest way to run the entire application stack - just one command:
+
+Duplicate the `.env.example` file to `.env` and update the values as needed.
 
 ```bash
 git clone <your-repo-url>
@@ -33,7 +30,6 @@ That's it! The `docker-compose.yml` file includes:
 - **PostgreSQL** with pgvector extension
 - **Redis** for caching
 - **Next.js application** in development mode
-- **All environment variables** pre-configured
 
 ### What happens automatically:
 
@@ -49,9 +45,6 @@ That's it! The `docker-compose.yml` file includes:
 - **Redis**: localhost:6379 (password: redis-pw)
 - **Database GUI**: Run `docker-compose exec app npm run db:studio` then visit https://local.drizzle.studio
 
-### For production:
-
-Change the `AUTH_SECRET` environment variable in `docker-compose.yml` to a secure random string.
 
 ## 📦 Available Scripts
 
