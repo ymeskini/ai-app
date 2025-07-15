@@ -10,6 +10,7 @@ import { searchSerper } from "~/serper";
 
 export const maxDuration = 60;
 
+
 export async function POST(request: Request) {
   const session = await auth();
 
