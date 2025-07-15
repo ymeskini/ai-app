@@ -7,6 +7,7 @@ import { z } from "zod";
 import { model } from "~/lib/model";
 import { auth } from "~/server/auth";
 import { searchSerper } from "~/serper";
+import { checkRateLimit, incrementRequestCount } from "~/server/redis/redis";
 
 export const maxDuration = 60;
 
@@ -16,6 +17,36 @@ export async function POST(request: Request) {
 
   if (!session) {
     return new Response("Unauthorized", { status: 401 });
+  }
+
+  // Check rate limiting
+  const { allowed, remainingRequests, isAdmin } = await checkRateLimit(
+    session.user.id
+  );
+
+  if (!allowed) {
+    return new Response(
+      JSON.stringify({
+        error: "Rate limit exceeded",
+        message: "You have exceeded your daily request limit. Please try again tomorrow.",
+        remainingRequests: 0,
+        isAdmin: false
+      }),
+      {
+        status: 429,
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Rate-Limit-Limit': '100',
+          'X-Rate-Limit-Remaining': '0',
+          'X-Rate-Limit-Reset': new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
+        }
+      }
+    );
+  }
+
+  // Increment request count (only if not admin to avoid unnecessary Redis calls)
+  if (!isAdmin) {
+    await incrementRequestCount(session.user.id);
   }
 
   const body = (await request.json()) as {
@@ -65,6 +96,11 @@ export async function POST(request: Request) {
     onError: (e) => {
       console.error(e);
       return "Oops, an error occured!";
+    },
+    headers: {
+      'X-Rate-Limit-Limit': '100',
+      'X-Rate-Limit-Remaining': remainingRequests.toString(),
+      'X-Rate-Limit-Admin': isAdmin.toString(),
     },
   });
 }
