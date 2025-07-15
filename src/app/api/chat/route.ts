@@ -25,20 +25,25 @@ export async function POST(request: Request) {
   );
 
   if (!allowed) {
+    // Calculate when the daily limit will reset (end of day)
+    const now = new Date();
+    const endOfDay = new Date(now);
+    endOfDay.setHours(23, 59, 59, 999);
+
     return new Response(
       JSON.stringify({
         error: "Rate limit exceeded",
         message: "You have exceeded your daily request limit. Please try again tomorrow.",
         remainingRequests: 0,
-        isAdmin: false
+        resetTime: endOfDay.toISOString(),
       }),
       {
         status: 429,
         headers: {
           'Content-Type': 'application/json',
-          'X-Rate-Limit-Limit': '100',
+          'X-Rate-Limit-Limit': '5',
           'X-Rate-Limit-Remaining': '0',
-          'X-Rate-Limit-Reset': new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
+          'X-Rate-Limit-Reset': endOfDay.toISOString()
         }
       }
     );

@@ -27,7 +27,7 @@ export const cacheWithRedis = <TArgs extends readonly unknown[], TResult>(
   };
 };
 
-const DAILY_REQUEST_LIMIT = 100;
+const DAILY_REQUEST_LIMIT = 5;
 const ADMIN_NAME = "sefyundercover";
 const USER_NAME_CACHE_TTL = 60 * 60; // 1 hour
 

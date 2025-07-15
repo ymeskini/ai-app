@@ -5,6 +5,7 @@ import { Loader2 } from "lucide-react";
 import { useState } from "react";
 import { ChatMessage } from "~/components/chat-message";
 import { SignInModal } from "~/components/sign-in-modal";
+import { ErrorMessage } from "~/components/error-message";
 
 interface ChatProps {
   userName: string;
@@ -13,13 +14,60 @@ interface ChatProps {
 
 export const ChatPage = ({ userName, isAuthenticated }: ChatProps) => {
   const [showSignInModal, setShowSignInModal] = useState(false);
+  const [rateLimitError, setRateLimitError] = useState<string | null>(null);
+
+  // Helper function to format the reset time
+  const formatResetTime = (resetTime: string) => {
+    const resetDate = new Date(resetTime);
+    const now = new Date();
+    const timeDiff = resetDate.getTime() - now.getTime();
+
+    if (timeDiff <= 0) {
+      return "now";
+    }
+
+    const hours = Math.floor(timeDiff / (1000 * 60 * 60));
+    const minutes = Math.floor((timeDiff % (1000 * 60 * 60)) / (1000 * 60));
+
+    if (hours > 0) {
+      return `${hours}h ${minutes}m`;
+    } else {
+      return `${minutes}m`;
+    }
+  };
+
   const {
     messages,
     input,
     handleInputChange,
     handleSubmit: originalHandleSubmit,
     status,
-  } = useChat();
+  } = useChat({
+    onError: (error) => {
+      try {
+        const errorData = JSON.parse(error.message) as {
+          error?: string;
+          resetTime?: string;
+          message?: string;
+        };
+
+        if (errorData.error === "Rate limit exceeded" && errorData.resetTime) {
+          const timeUntilReset = formatResetTime(errorData.resetTime);
+          setRateLimitError(
+            `Rate limit exceeded. Your daily limit will reset in ${timeUntilReset}.`,
+          );
+        } else {
+          setRateLimitError(error.message);
+        }
+      } catch {
+        // If parsing fails, use the original error message
+        setRateLimitError(error.message);
+      }
+    },
+    onResponse: () => {
+      setRateLimitError(null);
+    },
+  });
 
   const isLoading = status === "submitted";
 
@@ -54,11 +102,14 @@ export const ChatPage = ({ userName, isAuthenticated }: ChatProps) => {
           })}
         </div>
 
+        {rateLimitError && (
+          <div className="border-t border-gray-700 p-4">
+            <ErrorMessage message={rateLimitError} />
+          </div>
+        )}
+
         <div className="border-t border-gray-700">
-          <form
-            onSubmit={handleSubmit}
-            className="mx-auto max-w-[65ch] p-4"
-          >
+          <form onSubmit={handleSubmit} className="mx-auto max-w-[65ch] p-4">
             <div className="flex gap-2">
               <input
                 value={input}
@@ -74,16 +125,23 @@ export const ChatPage = ({ userName, isAuthenticated }: ChatProps) => {
                 disabled={isLoading}
                 className="rounded bg-gray-700 px-4 py-2 text-white hover:bg-gray-600 focus:border-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-400 disabled:opacity-50 disabled:hover:bg-gray-700"
               >
-                {isLoading ? <Loader2 className="size-4 animate-spin" /> : "Send"}
+                {isLoading ? (
+                  <Loader2 className="size-4 animate-spin" />
+                ) : (
+                  "Send"
+                )}
               </button>
             </div>
           </form>
         </div>
       </div>
 
-      <SignInModal isOpen={showSignInModal} onClose={() => {
-        setShowSignInModal(false);
-      }} />
+      <SignInModal
+        isOpen={showSignInModal}
+        onClose={() => {
+          setShowSignInModal(false);
+        }}
+      />
     </>
   );
 };
