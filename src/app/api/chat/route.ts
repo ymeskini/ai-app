@@ -67,9 +67,12 @@ export async function POST(request: Request) {
 
       // Create a new chat if chatId is not provided
       let currentChatId = chatId;
+      let newChatId: string | null = null;
+
       if (!currentChatId) {
         // Generate a new chat ID
         currentChatId = crypto.randomUUID();
+        newChatId = currentChatId;
 
         // Create the chat with the user's first message
         // Use the first message content as the title (truncated if too long)
@@ -85,6 +88,14 @@ export async function POST(request: Request) {
           chatId: currentChatId,
           title,
           messages: messages,
+        });
+      }
+
+      // Send the new chat ID to the frontend if a new chat was created
+      if (newChatId) {
+        dataStream.writeData({
+          type: "NEW_CHAT_CREATED",
+          chatId: newChatId,
         });
       }
 

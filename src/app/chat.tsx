@@ -2,19 +2,23 @@
 
 import { useChat } from "@ai-sdk/react";
 import { Loader2 } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { ChatMessage } from "~/components/chat-message";
 import { SignInModal } from "~/components/sign-in-modal";
 import { ErrorMessage } from "~/components/error-message";
+import { isNewChatCreated } from "~/lib/chat-utils";
 
 interface ChatProps {
   userName: string;
   isAuthenticated: boolean;
+  chatId?: string;
 }
 
-export const ChatPage = ({ userName, isAuthenticated }: ChatProps) => {
+export const ChatPage = ({ userName, isAuthenticated, chatId }: ChatProps) => {
   const [showSignInModal, setShowSignInModal] = useState(false);
   const [rateLimitError, setRateLimitError] = useState<string | null>(null);
+  const router = useRouter();
 
   // Helper function to format the reset time
   const formatResetTime = (resetTime: string) => {
@@ -42,7 +46,11 @@ export const ChatPage = ({ userName, isAuthenticated }: ChatProps) => {
     handleInputChange,
     handleSubmit: originalHandleSubmit,
     status,
+    data,
   } = useChat({
+    body: {
+      chatId,
+    },
     onError: (error) => {
       try {
         const errorData = JSON.parse(error.message) as {
@@ -68,6 +76,15 @@ export const ChatPage = ({ userName, isAuthenticated }: ChatProps) => {
       setRateLimitError(null);
     },
   });
+
+  // Handle new chat creation and redirection
+  useEffect(() => {
+    const lastDataItem = data?.[data.length - 1];
+
+    if (lastDataItem && isNewChatCreated(lastDataItem)) {
+      router.push(`?id=${lastDataItem.chatId}`);
+    }
+  }, [data, router]);
 
   const isLoading = status === "submitted";
 
