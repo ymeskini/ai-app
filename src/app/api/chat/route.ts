@@ -2,12 +2,14 @@ import type { Message } from "ai";
 import {
   streamText,
   createDataStreamResponse,
+  appendResponseMessages,
 } from "ai";
 import { z } from "zod";
 import { model } from "~/lib/model";
 import { auth } from "~/server/auth";
 import { searchSerper } from "~/serper";
 import { checkRateLimit, incrementRequestCount } from "~/server/redis/redis";
+import { upsertChat } from "~/server/db/chat";
 
 export const maxDuration = 60;
 
@@ -56,11 +58,35 @@ export async function POST(request: Request) {
 
   const body = (await request.json()) as {
     messages: Array<Message>;
+    chatId?: string;
   };
 
   return createDataStreamResponse({
     execute: async (dataStream) => {
-      const { messages } = body;
+      const { messages, chatId } = body;
+
+      // Create a new chat if chatId is not provided
+      let currentChatId = chatId;
+      if (!currentChatId) {
+        // Generate a new chat ID
+        currentChatId = crypto.randomUUID();
+
+        // Create the chat with the user's first message
+        // Use the first message content as the title (truncated if too long)
+        const firstMessage = messages[0];
+        const title = firstMessage?.content
+          ? (typeof firstMessage.content === 'string'
+              ? firstMessage.content.slice(0, 50) + (firstMessage.content.length > 50 ? '...' : '')
+              : 'New Chat')
+          : 'New Chat';
+
+        await upsertChat({
+          userId: session.user.id,
+          chatId: currentChatId,
+          title,
+          messages: messages,
+        });
+      }
 
       const result = streamText({
         model,
@@ -93,6 +119,29 @@ export async function POST(request: Request) {
               }));
             },
           },
+        },
+        onFinish: async ({ response }) => {
+          const responseMessages = response.messages;
+
+          const updatedMessages = appendResponseMessages({
+            messages,
+            responseMessages,
+          });
+
+          // Save the updated messages to the database
+          const firstMessage = updatedMessages[0];
+          const title = firstMessage?.content
+            ? (typeof firstMessage.content === 'string'
+                ? firstMessage.content.slice(0, 50) + (firstMessage.content.length > 50 ? '...' : '')
+                : 'New Chat')
+            : 'New Chat';
+
+          await upsertChat({
+            userId: session.user.id,
+            chatId: currentChatId,
+            title,
+            messages: updatedMessages,
+          });
         },
       });
 
