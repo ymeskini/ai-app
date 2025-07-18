@@ -13,7 +13,6 @@ import { upsertChat } from "~/server/db/chat";
 
 export const maxDuration = 60;
 
-
 export async function POST(request: Request) {
   const session = await auth();
 
@@ -23,7 +22,7 @@ export async function POST(request: Request) {
 
   // Check rate limiting
   const { allowed, remainingRequests, isAdmin } = await checkRateLimit(
-    session.user.id
+    session.user.id,
   );
 
   if (!allowed) {
@@ -35,19 +34,20 @@ export async function POST(request: Request) {
     return new Response(
       JSON.stringify({
         error: "Rate limit exceeded",
-        message: "You have exceeded your daily request limit. Please try again tomorrow.",
+        message:
+          "You have exceeded your daily request limit. Please try again tomorrow.",
         remainingRequests: 0,
         resetTime: endOfDay.toISOString(),
       }),
       {
         status: 429,
         headers: {
-          'Content-Type': 'application/json',
-          'X-Rate-Limit-Limit': '5',
-          'X-Rate-Limit-Remaining': '0',
-          'X-Rate-Limit-Reset': endOfDay.toISOString()
-        }
-      }
+          "Content-Type": "application/json",
+          "X-Rate-Limit-Limit": "5",
+          "X-Rate-Limit-Remaining": "0",
+          "X-Rate-Limit-Reset": endOfDay.toISOString(),
+        },
+      },
     );
   }
 
@@ -77,10 +77,11 @@ export async function POST(request: Request) {
         // Use the first message content as the title (truncated if too long)
         const firstMessage = messages[0];
         const title = firstMessage?.content
-          ? (typeof firstMessage.content === 'string'
-              ? firstMessage.content.slice(0, 50) + (firstMessage.content.length > 50 ? '...' : '')
-              : 'New Chat')
-          : 'New Chat';
+          ? typeof firstMessage.content === "string"
+            ? firstMessage.content.slice(0, 50) +
+              (firstMessage.content.length > 50 ? "..." : "")
+            : "New Chat"
+          : "New Chat";
 
         await upsertChat({
           userId: session.user.id,
@@ -99,6 +100,7 @@ export async function POST(request: Request) {
       }
 
       const result = streamText({
+        experimental_telemetry: { isEnabled: true },
         model,
         messages,
         system: `
@@ -141,10 +143,11 @@ export async function POST(request: Request) {
           // Save the updated messages to the database
           const firstMessage = updatedMessages[0];
           const title = firstMessage?.content
-            ? (typeof firstMessage.content === 'string'
-                ? firstMessage.content.slice(0, 50) + (firstMessage.content.length > 50 ? '...' : '')
-                : 'New Chat')
-            : 'New Chat';
+            ? typeof firstMessage.content === "string"
+              ? firstMessage.content.slice(0, 50) +
+                (firstMessage.content.length > 50 ? "..." : "")
+              : "New Chat"
+            : "New Chat";
 
           await upsertChat({
             userId: session.user.id,
@@ -162,9 +165,9 @@ export async function POST(request: Request) {
       return "Oops, an error occured!";
     },
     headers: {
-      'X-Rate-Limit-Limit': '100',
-      'X-Rate-Limit-Remaining': remainingRequests.toString(),
-      'X-Rate-Limit-Admin': isAdmin.toString(),
+      "X-Rate-Limit-Limit": "100",
+      "X-Rate-Limit-Remaining": remainingRequests.toString(),
+      "X-Rate-Limit-Admin": isAdmin.toString(),
     },
   });
 }

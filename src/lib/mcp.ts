@@ -20,6 +20,7 @@ const mcpClient = await createMCPClient({
 const tools = await mcpClient.tools();
 
 streamText({
+  experimental_telemetry: { isEnabled: true },
   model: google("gemini-2.0-flash-001"),
   tools,
   prompt: "What is the weather in Brooklyn, New York?",
