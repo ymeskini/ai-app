@@ -4,6 +4,7 @@ import { useChat } from "@ai-sdk/react";
 import { Loader2 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import type { Message } from "ai";
 import { ChatMessage } from "~/components/chat-message";
 import { SignInModal } from "~/components/sign-in-modal";
 import { ErrorMessage } from "~/components/error-message";
@@ -13,9 +14,10 @@ interface ChatProps {
   userName: string;
   isAuthenticated: boolean;
   chatId?: string;
+  initialMessages?: Message[];
 }
 
-export const ChatPage = ({ userName, isAuthenticated, chatId }: ChatProps) => {
+export const ChatPage = ({ userName, isAuthenticated, chatId, initialMessages = [] }: ChatProps) => {
   const [showSignInModal, setShowSignInModal] = useState(false);
   const [rateLimitError, setRateLimitError] = useState<string | null>(null);
   const router = useRouter();
@@ -48,6 +50,7 @@ export const ChatPage = ({ userName, isAuthenticated, chatId }: ChatProps) => {
     status,
     data,
   } = useChat({
+    initialMessages,
     body: {
       chatId,
     },
