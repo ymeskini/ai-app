@@ -5,6 +5,7 @@ import { Loader2 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import type { Message } from "ai";
+import { StickToBottom } from "use-stick-to-bottom";
 import { ChatMessage } from "~/components/chat-message";
 import { SignInModal } from "~/components/sign-in-modal";
 import { ErrorMessage } from "~/components/error-message";
@@ -106,23 +107,27 @@ export const ChatPage = ({ userName, isAuthenticated, chatId, isNewChat, initial
 
   return (
     <>
-      <div className="flex flex-1 flex-col">
-        <div
-          className="mx-auto w-full max-w-[65ch] flex-1 overflow-y-auto p-4 scrollbar-thin scrollbar-track-gray-800 scrollbar-thumb-gray-600 hover:scrollbar-thumb-gray-500"
+      <div className="flex flex-1 flex-col min-h-0">
+        <StickToBottom
+          className="mx-auto w-full max-w-[65ch] flex-1 min-h-0 [&>div]:overflow-y-auto [&>div]:scrollbar-thin [&>div]:scrollbar-track-gray-800 [&>div]:scrollbar-thumb-gray-600 [&>div]:hover:scrollbar-thumb-gray-500"
+          resize="instant"
+          initial="instant"
           role="log"
           aria-label="Chat messages"
         >
-          {messages.map((message, index) => {
-            return (
-              <ChatMessage
-                key={message.id || index}
-                parts={message.parts}
-                role={message.role}
-                userName={userName}
-              />
-            );
-          })}
-        </div>
+          <StickToBottom.Content className="p-4">
+            {messages.map((message, index) => {
+              return (
+                <ChatMessage
+                  key={message.id || index}
+                  parts={message.parts}
+                  role={message.role}
+                  userName={userName}
+                />
+              );
+            })}
+          </StickToBottom.Content>
+        </StickToBottom>
 
         {rateLimitError && (
           <div className="border-t border-gray-700 p-4">
