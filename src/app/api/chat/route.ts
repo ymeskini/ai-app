@@ -58,21 +58,20 @@ export async function POST(request: Request) {
 
   const body = (await request.json()) as {
     messages: Array<Message>;
-    chatId?: string;
+    chatId: string;
+    isNewChat?: boolean;
   };
 
   return createDataStreamResponse({
     execute: async (dataStream) => {
-      const { messages, chatId } = body;
+      const { messages, chatId, isNewChat = false } = body;
 
-      // Create a new chat if chatId is not provided
-      let currentChatId = chatId;
+      // Create a new chat if isNewChat is true
       let newChatId: string | null = null;
 
-      if (!currentChatId) {
-        // Generate a new chat ID
-        currentChatId = crypto.randomUUID();
-        newChatId = currentChatId;
+      if (isNewChat) {
+        // Generate a new chat ID (using the provided chatId)
+        newChatId = chatId;
 
         // Create the chat with the user's first message
         // Use the first message content as the title (truncated if too long)
@@ -85,7 +84,7 @@ export async function POST(request: Request) {
 
         await upsertChat({
           userId: session.user.id,
-          chatId: currentChatId,
+          chatId: chatId,
           title,
           messages: messages,
         });
@@ -149,7 +148,7 @@ export async function POST(request: Request) {
 
           await upsertChat({
             userId: session.user.id,
-            chatId: currentChatId,
+            chatId: chatId,
             title,
             messages: updatedMessages,
           });

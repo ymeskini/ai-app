@@ -13,11 +13,12 @@ import { isNewChatCreated } from "~/lib/chat-utils";
 interface ChatProps {
   userName: string;
   isAuthenticated: boolean;
-  chatId?: string;
+  chatId: string;
+  isNewChat: boolean;
   initialMessages?: Message[];
 }
 
-export const ChatPage = ({ userName, isAuthenticated, chatId, initialMessages = [] }: ChatProps) => {
+export const ChatPage = ({ userName, isAuthenticated, chatId, isNewChat, initialMessages = [] }: ChatProps) => {
   const [showSignInModal, setShowSignInModal] = useState(false);
   const [rateLimitError, setRateLimitError] = useState<string | null>(null);
   const router = useRouter();
@@ -53,6 +54,7 @@ export const ChatPage = ({ userName, isAuthenticated, chatId, initialMessages = 
     initialMessages,
     body: {
       chatId,
+      isNewChat,
     },
     onError: (error) => {
       try {

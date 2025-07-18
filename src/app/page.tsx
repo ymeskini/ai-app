@@ -20,6 +20,10 @@ export default async function HomePage({
   // Fetch chats from database if user is authenticated
   const chats = isAuthenticated && userId ? await getChats(userId) : [];
 
+  // Generate a stable chatId and determine if it's a new chat
+  const chatId = id ?? crypto.randomUUID();
+  const isNewChat = !id;
+
   // Fetch specific chat if id is provided
   const currentChat = id && userId ? await getChat(id, userId) : null;
 
@@ -87,9 +91,11 @@ export default async function HomePage({
       </div>
 
       <ChatPage
+        key={chatId}
         userName={userName}
         isAuthenticated={isAuthenticated}
-        chatId={id}
+        chatId={chatId}
+        isNewChat={isNewChat}
         initialMessages={initialMessages}
       />
     </div>
