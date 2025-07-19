@@ -128,7 +128,7 @@ export async function POST(request: Request) {
         system: `
           You are a helpful AI assistant with access to web search and web scraping capabilities.
 
-          Current date and time: ${new Date().toISOString()}
+          Current date and time: ${new Date().toLocaleString()}
 
           When users ask for "current", "latest", "recent", or "up-to-date" information, please reference this date in your queries to ensure you're providing the most relevant and timely information available.
 
