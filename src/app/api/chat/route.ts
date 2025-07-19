@@ -10,6 +10,7 @@ import { env } from "~/env";
 import { model } from "~/lib/model";
 import { auth } from "~/server/auth";
 import { searchSerper } from "~/serper";
+import { bulkCrawlWebsites, type CrawlResponse } from "~/lib/scraper";
 import { checkRateLimit, incrementRequestCount } from "~/server/redis/redis";
 import { upsertChat } from "~/server/db/chat";
 
@@ -125,13 +126,37 @@ export async function POST(request: Request) {
         model,
         messages,
         system: `
-          You are a helpful AI assistant with access to web search capabilities.
-            When answering questions, you should:
+          You are a helpful AI assistant with access to web search and web scraping capabilities.
+
+          IMPORTANT RULE: You MUST use the scrapePages tool after using the searchWeb tool. This is mandatory - search snippets alone are not sufficient.
+
+          When answering questions, you should:
               1. Use the searchWeb tool to find current and relevant information from the web
-              2. Always cite your sources with inline links in your responses
-              3. Provide comprehensive answers based on the search results
-              4. If the user asks about recent events, current information, or anything that might benefit from web search, use the searchWeb tool
-          Format your citations like this: [Source Title](URL) when referencing information from search results.
+              2. ALWAYS follow up immediately with the scrapePages tool using 4-6 URLs from the search results to get complete content
+              3. Select a diverse set of sources - choose URLs from different domains/websites to get varied perspectives
+              4. Always cite your sources with inline links in your responses
+              5. Provide comprehensive answers based on the full scraped content, not just search snippets
+              6. If the user asks about recent events, current information, or anything that might benefit from web search, use both tools in sequence
+
+          Workflow:
+          1. searchWeb → get URLs and snippets
+          2. scrapePages → scrape 4-6 diverse URLs from those results (MANDATORY)
+          3. Answer based on complete scraped content from multiple sources
+
+          Source Selection Guidelines:
+          - Choose 4-6 URLs minimum per query
+          - Prioritize different domains/websites for diverse perspectives
+          - Include authoritative sources when available
+          - Mix official sources with analysis/opinion pieces when relevant
+
+          The scrapePages tool will:
+          - Extract the full text content from web pages
+          - Convert HTML to readable markdown format
+          - Respect robots.txt restrictions
+          - Handle rate limiting and retries automatically
+          - Return detailed error messages if pages cannot be scraped
+
+          Format your citations like this: [Source Title](URL) when referencing information from search results or scraped pages.
         `,
         maxSteps: 10,
         tools: {
@@ -150,6 +175,45 @@ export async function POST(request: Request) {
                 link: result.link,
                 snippet: result.snippet,
               }));
+            },
+          },
+          scrapePages: {
+            parameters: z.object({
+              urls: z.array(z.string()).describe("Array of URLs to scrape and extract full content from"),
+            }),
+            execute: async ({ urls }: { urls: string[] }) => {
+              const results = await bulkCrawlWebsites({
+                urls,
+                maxRetries: 3,
+              });
+
+              const processResult = (result: { url: string; result: CrawlResponse }) => {
+                if (result.result.success) {
+                  return {
+                    url: result.url,
+                    success: true,
+                    content: result.result.data,
+                    error: undefined,
+                  };
+                } else {
+                  return {
+                    url: result.url,
+                    success: false,
+                    content: undefined,
+                    error: result.result.error,
+                  };
+                }
+              };
+
+              if (results.success) {
+                return results.results.map(processResult);
+              } else {
+                return {
+                  success: false,
+                  error: results.error,
+                  results: results.results.map(processResult),
+                };
+              }
             },
           },
         },
