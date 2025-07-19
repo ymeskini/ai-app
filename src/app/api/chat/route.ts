@@ -5,11 +5,17 @@ import {
   appendResponseMessages,
 } from "ai";
 import { z } from "zod";
+import { Langfuse } from "langfuse";
+import { env } from "~/env";
 import { model } from "~/lib/model";
 import { auth } from "~/server/auth";
 import { searchSerper } from "~/serper";
 import { checkRateLimit, incrementRequestCount } from "~/server/redis/redis";
 import { upsertChat } from "~/server/db/chat";
+
+const langfuse = new Langfuse({
+  environment: env.NODE_ENV,
+});
 
 export const maxDuration = 60;
 
@@ -68,10 +74,12 @@ export async function POST(request: Request) {
 
       // Create a new chat if isNewChat is true
       let newChatId: string | null = null;
+      let currentChatId = chatId;
 
       if (isNewChat) {
         // Generate a new chat ID (using the provided chatId)
         newChatId = chatId;
+        currentChatId = chatId;
 
         // Create the chat with the user's first message
         // Use the first message content as the title (truncated if too long)
@@ -91,6 +99,13 @@ export async function POST(request: Request) {
         });
       }
 
+      // Create Langfuse trace with session and user information
+      const trace = langfuse.trace({
+        name: "chat",
+        sessionId: currentChatId,
+        userId: session.user.id,
+      });
+
       // Send the new chat ID to the frontend if a new chat was created
       if (newChatId) {
         dataStream.writeData({
@@ -100,7 +115,13 @@ export async function POST(request: Request) {
       }
 
       const result = streamText({
-        experimental_telemetry: { isEnabled: true },
+        experimental_telemetry: {
+          isEnabled: true,
+          functionId: `agent`,
+          metadata: {
+            langfuseTraceId: trace.id,
+          },
+        },
         model,
         messages,
         system: `
@@ -155,6 +176,9 @@ export async function POST(request: Request) {
             title,
             messages: updatedMessages,
           });
+
+          // Flush the trace to Langfuse
+          await langfuse.flushAsync();
         },
       });
 
