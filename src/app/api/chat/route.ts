@@ -128,6 +128,10 @@ export async function POST(request: Request) {
         system: `
           You are a helpful AI assistant with access to web search and web scraping capabilities.
 
+          Current date and time: ${new Date().toISOString()}
+
+          When users ask for "current", "latest", "recent", or "up-to-date" information, please reference this date in your queries to ensure you're providing the most relevant and timely information available.
+
           IMPORTANT RULE: You MUST use the scrapePages tool after using the searchWeb tool. This is mandatory - search snippets alone are not sufficient.
 
           When answering questions, you should:
@@ -174,6 +178,7 @@ export async function POST(request: Request) {
                 title: result.title,
                 link: result.link,
                 snippet: result.snippet,
+                date: result.date,
               }));
             },
           },
