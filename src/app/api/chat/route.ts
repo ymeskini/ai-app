@@ -27,10 +27,31 @@ export async function POST(request: Request) {
     return new Response("Unauthorized", { status: 401 });
   }
 
+  // Create Langfuse trace early to track all operations
+  const trace = langfuse.trace({
+    name: "chat",
+    userId: session.user.id,
+  });
+
   // Check rate limiting
+  const rateLimitSpan = trace.span({
+    name: "check-rate-limit",
+    input: {
+      userId: session.user.id,
+    },
+  });
+
   const { allowed, remainingRequests, isAdmin } = await checkRateLimit(
     session.user.id,
   );
+
+  rateLimitSpan.end({
+    output: {
+      allowed,
+      remainingRequests,
+      isAdmin,
+    },
+  });
 
   if (!allowed) {
     // Calculate when the daily limit will reset (end of day)
@@ -60,7 +81,20 @@ export async function POST(request: Request) {
 
   // Increment request count (only if not admin to avoid unnecessary Redis calls)
   if (!isAdmin) {
-    await incrementRequestCount(session.user.id);
+    const incrementSpan = trace.span({
+      name: "increment-request-count",
+      input: {
+        userId: session.user.id,
+      },
+    });
+
+    const newCount = await incrementRequestCount(session.user.id);
+
+    incrementSpan.end({
+      output: {
+        newCount,
+      },
+    });
   }
 
   const body = (await request.json()) as {
@@ -92,20 +126,37 @@ export async function POST(request: Request) {
             : "New Chat"
           : "New Chat";
 
-        await upsertChat({
+        const createChatSpan = trace.span({
+          name: "create-new-chat",
+          input: {
+            userId: session.user.id,
+            chatId: chatId,
+            title,
+            messageCount: messages.length,
+          },
+        });
+
+        const result = await upsertChat({
           userId: session.user.id,
           chatId: chatId,
           title,
           messages: messages,
         });
+
+        createChatSpan.end({
+          output: {
+            chatId: result.id,
+          },
+        });
       }
 
-      // Create Langfuse trace with session and user information
-      const trace = langfuse.trace({
-        name: "chat",
+      // Update trace with session ID now that we have the chat ID
+      trace.update({
         sessionId: currentChatId,
-        userId: session.user.id,
       });
+
+      // Create Langfuse trace with session and user information (updated with sessionId)
+      // Note: sessionId will be updated once we have the current chat ID
 
       // Send the new chat ID to the frontend if a new chat was created
       if (newChatId) {
@@ -239,11 +290,27 @@ export async function POST(request: Request) {
               : "New Chat"
             : "New Chat";
 
-          await upsertChat({
+          const saveMessagesSpan = trace.span({
+            name: "save-chat-messages",
+            input: {
+              userId: session.user.id,
+              chatId: chatId,
+              title,
+              messageCount: updatedMessages.length,
+            },
+          });
+
+          const result = await upsertChat({
             userId: session.user.id,
             chatId: chatId,
             title,
             messages: updatedMessages,
+          });
+
+          saveMessagesSpan.end({
+            output: {
+              chatId: result.id,
+            },
           });
 
           // Flush the trace to Langfuse
