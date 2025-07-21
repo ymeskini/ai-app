@@ -7,6 +7,7 @@ import { Langfuse } from "langfuse";
 import { env } from "~/env";
 import { auth } from "~/server/auth";
 import { checkRateLimit, incrementRequestCount } from "~/server/redis/redis";
+import { checkGlobalRateLimit, recordRateLimit } from "~/server/redis/global-rate-limit";
 import { upsertChat } from "~/server/db/chat";
 import { streamFromDeepSearch } from "~/lib/deep-search";
 
@@ -28,6 +29,74 @@ export async function POST(request: Request) {
     name: "chat",
     userId: session.user.id,
   });
+
+  // Global rate limiting configuration
+  const globalRateLimitConfig = {
+    maxRequests: 1, // For testing: only 1 request
+    windowMs: 5_000, // For testing: 5 seconds window
+    keyPrefix: "global",
+    maxRetries: 3,
+  };
+
+  // Check global rate limiting first
+  const globalRateLimitSpan = trace.span({
+    name: "check-global-rate-limit",
+    input: globalRateLimitConfig,
+  });
+
+  const globalRateLimitCheck = await checkGlobalRateLimit(globalRateLimitConfig);
+
+  globalRateLimitSpan.end({
+    output: {
+      allowed: globalRateLimitCheck.allowed,
+      remaining: globalRateLimitCheck.remaining,
+      totalHits: globalRateLimitCheck.totalHits,
+      resetTime: globalRateLimitCheck.resetTime,
+    },
+  });
+
+  if (!globalRateLimitCheck.allowed) {
+    console.log("Global rate limit exceeded, waiting for reset...");
+
+    const retrySpan = trace.span({
+      name: "global-rate-limit-retry",
+      input: {
+        resetTime: globalRateLimitCheck.resetTime,
+        totalHits: globalRateLimitCheck.totalHits,
+      },
+    });
+
+    const isAllowed = await globalRateLimitCheck.retry();
+
+    retrySpan.end({
+      output: {
+        retrySuccessful: isAllowed,
+      },
+    });
+
+    // If still not allowed after retries, fail the request
+    if (!isAllowed) {
+      return new Response(
+        JSON.stringify({
+          error: "Global rate limit exceeded",
+          message: "The system is currently experiencing high load. Please try again later.",
+          resetTime: new Date(globalRateLimitCheck.resetTime).toISOString(),
+        }),
+        {
+          status: 429,
+          headers: {
+            "Content-Type": "application/json",
+            "X-Global-Rate-Limit-Limit": globalRateLimitConfig.maxRequests.toString(),
+            "X-Global-Rate-Limit-Remaining": globalRateLimitCheck.remaining.toString(),
+            "X-Global-Rate-Limit-Reset": new Date(globalRateLimitCheck.resetTime).toISOString(),
+          },
+        },
+      );
+    }
+  }
+
+  // Record the global rate limit usage
+  await recordRateLimit(globalRateLimitConfig);
 
   // Check rate limiting
   const rateLimitSpan = trace.span({
