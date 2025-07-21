@@ -8,6 +8,10 @@ export default defineConfig({
       REDIS_URL: "redis://:redis-pw@localhost:6379",
     },
     unstubEnvs: true,
+    testTimeout: 60_000,
+    sequence: {
+      concurrent: false,
+    }
   },
   plugins: [tsconfigPaths()],
 });

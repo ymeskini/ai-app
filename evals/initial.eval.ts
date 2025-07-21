@@ -25,10 +25,73 @@ evalite("Deep Search Eval", {
           },
         ],
       },
+      {
+        input: [
+          {
+            id: "3",
+            role: "user",
+            content:
+              "How do I set up authentication in Next.js?",
+          },
+        ],
+      },
+      {
+        input: [
+          {
+            id: "4",
+            role: "user",
+            content:
+              "What are the differences between React Server Components and Client Components?",
+          },
+        ],
+      },
+      {
+        input: [
+          {
+            id: "5",
+            role: "user",
+            content:
+              "How to optimize performance in a React application?",
+          },
+        ],
+      },
+      {
+        input: [
+          {
+            id: "7",
+            role: "user",
+            content:
+              "How do I deploy a Next.js application to production?",
+          },
+        ],
+      },
+      {
+        input: [
+          {
+            id: "8",
+            role: "user",
+            content:
+              "What are the key features of Tailwind CSS?",
+          },
+        ],
+      },
     ];
   },
   task: async (input) => {
     return askDeepSearch(input);
   },
-  scorers: [],
+  scorers: [
+    {
+      name: "Contains Links",
+      description:
+        "Checks if the output contains any markdown links.",
+      scorer: ({ output }) => {
+        // Regex to match markdown links: [text](url)
+        const markdownLinkRegex = /\[([^\]]+)\]\(([^)]+)\)/;
+        const containsLinks = markdownLinkRegex.test(output);
+
+        return containsLinks ? 1 : 0;
+      },
+    },
+  ],
 });
