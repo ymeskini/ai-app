@@ -10,7 +10,7 @@ import { env } from "~/env";
 import { model } from "~/lib/model";
 import { auth } from "~/server/auth";
 import { searchSerper } from "~/serper";
-import { bulkCrawlWebsites, type CrawlResponse } from "~/lib/scraper";
+import { type CrawlResponse, bulkCrawlWebsitesWithJina } from "~/lib/scraper";
 import { checkRateLimit, incrementRequestCount } from "~/server/redis/redis";
 import { upsertChat } from "~/server/db/chat";
 
@@ -238,7 +238,7 @@ export async function POST(request: Request) {
               urls: z.array(z.string()).describe("Array of URLs to scrape and extract full content from"),
             }),
             execute: async ({ urls }: { urls: string[] }) => {
-              const results = await bulkCrawlWebsites({
+              const results = await bulkCrawlWebsitesWithJina({
                 urls,
                 maxRetries: 3,
               });

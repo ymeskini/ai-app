@@ -3,6 +3,10 @@ import { setTimeout } from "node:timers/promises";
 import robotsParser from "robots-parser";
 import TurndownService from "turndown";
 import { cacheWithRedis } from "~/server/redis/redis";
+import {
+  jinaCrawlWebsite,
+  jinaBulkCrawlWebsites
+} from "./jina-scraper";
 
 // Type declaration for TurndownService
 interface TurndownServiceType {
@@ -240,3 +244,37 @@ export const crawlWebsite = cacheWithRedis(
     };
   },
 );
+
+// Export Jina-based crawling functions as alternatives
+export const crawlWebsiteWithJina = jinaCrawlWebsite;
+export const bulkCrawlWebsitesWithJina = jinaBulkCrawlWebsites;
+
+// Helper function to choose between scraping methods
+export const crawlWebsiteAdaptive = async (
+  options: CrawlOptions & { url: string; useJina?: boolean },
+): Promise<CrawlResponse> => {
+  if (options.useJina && process.env.JINA_API_KEY) {
+    const jinaResult = await jinaCrawlWebsite({
+      url: options.url,
+      maxRetries: options.maxRetries,
+      returnFormat: "markdown",
+      removeSelectors: ["nav", "header", "footer", "script", "style"],
+    });
+
+    // Convert Jina response to standard CrawlResponse format
+    if (jinaResult.success) {
+      return {
+        success: true,
+        data: jinaResult.data,
+      };
+    } else {
+      return {
+        success: false,
+        error: jinaResult.error,
+      };
+    }
+  }
+
+  // Fallback to traditional scraping
+  return crawlWebsite(options);
+};
