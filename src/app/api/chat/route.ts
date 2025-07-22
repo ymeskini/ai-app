@@ -56,8 +56,6 @@ export async function POST(request: Request) {
   });
 
   if (!globalRateLimitCheck.allowed) {
-    console.log("Global rate limit exceeded, waiting for reset...");
-
     const retrySpan = trace.span({
       name: "global-rate-limit-retry",
       input: {

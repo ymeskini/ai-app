@@ -31,7 +31,6 @@ export async function recordRateLimit({
     Math.floor(now / windowMs) * windowMs;
   const key = `${keyPrefix}:${windowStart}`;
 
-  console.log(`[RATE_LIMIT] Recording rate limit with key: ${key}`);
 
   try {
     const pipeline = redis.pipeline();
@@ -46,7 +45,6 @@ export async function recordRateLimit({
       );
     }
 
-    console.log(`[RATE_LIMIT] Successfully recorded rate limit for key: ${key}`);
   } catch (error) {
     console.error(
       "Rate limit recording failed:",
@@ -80,8 +78,6 @@ export async function checkGlobalRateLimit({
     const allowed = count < maxRequests;
     const remaining = Math.max(0, maxRequests - count);
     const resetTime = windowStart + windowMs;
-
-    console.log(`[RATE_LIMIT] Current count: ${count}, allowed: ${allowed}, remaining: ${remaining}, resetTime: ${new Date(resetTime).toISOString()}`);
 
     let retryCount = 0;
 

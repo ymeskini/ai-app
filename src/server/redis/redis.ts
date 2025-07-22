@@ -1,8 +1,9 @@
 import { env } from "~/env";
 import Redis from "ioredis";
+import { eq } from "drizzle-orm";
+
 import { db } from "~/server/db";
 import { users } from "~/server/db/schema";
-import { eq } from "drizzle-orm";
 
 export const redis = new Redis(env.REDIS_URL);
 
@@ -17,7 +18,6 @@ export const cacheWithRedis = <TArgs extends readonly unknown[], TResult>(
     const key = `${keyPrefix}${CACHE_KEY_SEPARATOR}${JSON.stringify(args)}`;
     const cachedResult = await redis.get(key);
     if (cachedResult) {
-      console.log(`Cache hit for ${key}`);
       return JSON.parse(cachedResult) as TResult;
     }
 
