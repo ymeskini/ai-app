@@ -7,6 +7,7 @@ import { z } from "zod";
 import { model } from "~/lib/model";
 import { searchSerper } from "~/serper";
 import { type CrawlResponse, bulkCrawlWebsitesWithJina } from "~/lib/scraper";
+import { env } from "~/env";
 
 export const streamFromDeepSearch = (opts: {
   messages: Message[];
@@ -103,7 +104,7 @@ export const streamFromDeepSearch = (opts: {
         }),
         execute: async ({ query }: { query: string }, { abortSignal }) => {
           const results = await searchSerper(
-            { q: query, num: 10 },
+            { q: query, num: env.SEARCH_RESULTS_COUNT },
             abortSignal,
           );
 
