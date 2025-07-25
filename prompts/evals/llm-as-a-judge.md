@@ -1,18 +1,37 @@
-import { evalite } from "evalite";
-import { askDeepSearch } from "~/lib/deep-search";
-import { factualityModel } from "~/lib/model";
-import type { Message } from "ai";
+We have picked out the easiest possible thing we could evaluate for our first eval.
+
+But to know whether we are actually meeting our success criteria, we need to go a bit deeper.
+
+Our main criteria for success is factuality - whether the answer is verifiably accurate.
+
+For that we could use a human fact checker. We could pay someone (or do it ourselves) to check the LLMs answers and see if they're correct or not.
+
+But this would be astonishingly expensive and time consuming.
+
+But there is something else we can try. We can try using an LLM to judge an answer's factuality.
+
+We have to be careful here - we need to provide the "LLM judge" with all the information it needs to perform its job correctly. It needs:
+
+- The question asked
+- The answer given
+- The actual truth
+
+We can do this by giving the LLM a prompt that includes all of this information. We can also do this within Evalite. Evalite's documentation has this exact example, using the AI SDK.
+
+It looks like this:
+
+```ts
+import { createScorer } from "evalite";
 import { generateObject } from "ai";
 import { z } from "zod";
-import { createScorer } from "evalite";
 
-const checkFactuality = async (opts: {
+export const checkFactuality = async (opts: {
   question: string;
   groundTruth: string;
   submission: string;
 }) => {
   const { object } = await generateObject({
-    model: factualityModel,
+    model, // whichever model you want to use
     /**
      * Prompt taken from autoevals:
      *
@@ -70,23 +89,44 @@ const checkFactuality = async (opts: {
 };
 
 // This is the scorer that can be passed into the scorers in Evalite
-const Factuality = createScorer<
-  Message[],
+export const Factuality = createScorer<
+  string,
   string,
   string
 >({
   name: "Factuality",
   scorer: async ({ input, expected, output }) => {
-    // Extract the question from the messages
-    const question = input.find(msg => msg.role === "user")?.content ?? "";
-
     return checkFactuality({
-      question,
+      question: input,
       groundTruth: expected!,
       submission: output,
     });
   },
 });
+```
+
+You'll notice that in the example above the scorer doesn't just return the score, it also returns a `metadata` object.
+
+This is useful because it allows us to get the LLM's reasoning for its answer.
+
+### Diving Into The Prompt
+
+The prompt is the most important part of this implementation. I've cribbed the prompt from the [autoevals](https://github.com/braintrustdata/autoevals) library. It does a couple of important things:
+
+- It gives the LLM an exact criteria for each 'score'
+- It then translates the score into a number
+
+It also helpfully scores subsets and supersets of the expert answer - this gives more flexibility than if we just used 0 or 100%.
+
+### Adding `expected` To Our Evals
+
+We now need to do some grunt work - we need to add the `expected` field to each of our evals.
+
+As you can see, this makes our eval twice as hard to author - we now also need to write the expected answer for each example.
+
+```ts
+import { Message } from "ai";
+import { evalite } from "evalite";
 
 evalite("Deep Search Eval", {
   data: async (): Promise<
@@ -134,22 +174,37 @@ evalite("Deep Search Eval", {
       },
     ];
   },
-  task: async (input) => {
-    return askDeepSearch(input);
-  },
-  scorers: [
-    {
-      name: "Contains Links",
-      description:
-        "Checks if the output contains any markdown links.",
-      scorer: ({ output }) => {
-        // Regex to match markdown links: [text](url)
-        const markdownLinkRegex = /\[([^\]]+)\]\(([^)]+)\)/;
-        const containsLinks = markdownLinkRegex.test(output);
-
-        return containsLinks ? 1 : 0;
-      },
-    },
-    Factuality,
-  ],
 });
+```
+
+This is easier for some questions than others. Our existing Vue vs React question is very difficult - I'm personally not an expert on the differences.
+
+So feel free to chop the examples down to only the two above.
+
+### Choosing A Model For The LLM-As-A-Judge
+
+One question remains - what kind of model should we use? There are two schools of thought here.
+
+School one is "go big or go home". Since you're trusting the LLM with an important task, you should use a powerful model, maybe even with reasoning capabilities.
+
+School two is "use a just-good-enough model". The LLM as a judge is doing a relatively simple task - classification. So, you should use a small to mid-range model that runs quickly and cheaply.
+
+You should experiment with both and see which works better.
+
+For those following along and using Google, we'll use `gemini-1.5-flash` for this task.
+
+```ts
+import { google } from "@ai-sdk/google";
+
+export const factualityModel = google(
+  "gemini-1.5-flash",
+);
+```
+
+## Steps To Complete
+
+- Look in the `evals` folder for the existing eval.
+- Inside the `scorers` for this eval, use the `Factuality` scorer above.
+- As above, add the `expected` field to the examples.
+- Add the `factualityModel` to the existing models file.
+- Run the eval and see the results.
