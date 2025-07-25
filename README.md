@@ -249,3 +249,74 @@ For these criteria to be useful, they need to be actionable and extremely visibl
 - Sending updates to Slack
 - Treating metric degradations as incidents
 - Using success criteria as a driving force for development
+
+
+## Evals
+
+This application uses a tiered evaluation system with three different dataset sizes optimized for different stages of development:
+
+### Dataset Organization
+
+Our eval datasets are split into three separate files, each serving a specific purpose:
+
+| Dataset | File | Size | Purpose | When to Use |
+|---------|------|------|---------|-------------|
+| **Dev** | `evals/dev.ts` | 4-10 cases | Local testing of toughest cases | During development |
+| **CI** | `evals/ci.ts` | 5-20 cases | Pre-deployment testing | Before deployment |
+| **Regression** | `evals/regression.ts` | 8+ cases | Comprehensive regression testing | Periodically |
+
+#### Dataset Structure
+
+Each dataset file exports an array of test cases:
+
+```typescript
+export const devData: { input: Message[]; expected: string }[] = [
+  {
+    input: [
+      {
+        id: "1",
+        role: "user",
+        content: "Your test question here",
+      },
+    ],
+    expected: "Expected response criteria",
+  },
+];
+```
+
+### Running Evals
+
+The eval system automatically selects the appropriate dataset based on the `EVAL_DATASET` environment variable:
+
+#### Development (Default)
+```bash
+npm run evals
+# or explicitly
+EVAL_DATASET=dev npm run evals
+```
+Runs only the **dev dataset** (4 toughest cases) for quick local testing.
+
+#### CI/Pre-deployment
+```bash
+EVAL_DATASET=ci npm run evals
+```
+Runs **dev + ci datasets** (9 total cases) for pre-deployment validation.
+
+#### Regression Testing
+```bash
+EVAL_DATASET=regression npm run evals
+```
+Runs **dev + ci + regression datasets** (17+ total cases) for comprehensive testing.
+
+### Eval Configuration
+
+The dataset selection logic is implemented in `evals/initial.eval.ts`:
+
+- **Dev**: Contains the most challenging multi-hop reasoning questions
+- **CI**: Adds basic functionality tests
+- **Regression**: Adds comprehensive edge cases and historical scenarios
+
+This tiered approach ensures:
+- **Fast feedback** during development (dev dataset)
+- **Adequate coverage** before deployment (ci dataset)
+- **Comprehensive protection** against regressions (full dataset)
