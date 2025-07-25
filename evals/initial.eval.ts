@@ -6,6 +6,7 @@ import { z } from "zod";
 
 import { askDeepSearch } from "~/lib/deep-search";
 import { factualityModel } from "~/lib/model";
+import { AnswerRelevancy } from "./answer-relevancy";
 import { devData } from "./dev";
 import { ciData } from "./ci";
 import { regressionData } from "./regression";
@@ -126,5 +127,6 @@ evalite("Arsenal Transfer Activity Eval", {
       },
     },
     Factuality,
+    AnswerRelevancy,
   ],
 });
