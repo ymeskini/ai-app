@@ -13,7 +13,7 @@ export const streamFromDeepSearch = async (opts: {
   // Extract the user query from the last message
   const lastMessage = opts.messages[opts.messages.length - 1];
   const userQuery = lastMessage?.content ?? "";
-  
+
   // Convert content to string if needed - for now just handle string content
   const queryString = typeof userQuery === 'string' ? userQuery : 'Please help me';
 

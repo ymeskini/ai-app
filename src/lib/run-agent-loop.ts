@@ -1,10 +1,10 @@
+import type { StreamTextResult } from "ai";
 import { searchSerper } from "~/serper";
 import { bulkCrawlWebsitesWithJina, type CrawlResponse } from "~/lib/scraper";
 import { getNextAction } from "~/lib/get-next-action";
 import { answerQuestion } from "~/lib/answer-question";
 import { SystemContext, type QueryResult, type QueryResultSearchResult } from "~/lib/system-context";
 import { env } from "~/env";
-import type { StreamTextResult } from "ai";
 
 /**
  * Search the web using Serper API
