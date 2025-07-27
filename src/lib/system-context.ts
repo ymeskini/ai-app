@@ -1,16 +1,16 @@
-type QueryResultSearchResult = {
+export type QueryResultSearchResult = {
   date: string;
   title: string;
   url: string;
   snippet: string;
 };
 
-type QueryResult = {
+export type QueryResult = {
   query: string;
   results: QueryResultSearchResult[];
 };
 
-type ScrapeResult = {
+export type ScrapeResult = {
   url: string;
   result: string;
 };
@@ -42,6 +42,14 @@ export class SystemContext {
 
   shouldStop() {
     return this.step >= 10;
+  }
+
+  getStep() {
+    return this.step;
+  }
+
+  incrementStep() {
+    this.step++;
   }
 
   reportQueries(queries: QueryResult[]) {
