@@ -1,7 +1,6 @@
 import type { Message } from "ai";
 import {
   createDataStreamResponse,
-  appendResponseMessages,
 } from "ai";
 import { Langfuse } from "langfuse";
 import { env } from "~/env";
@@ -229,7 +228,8 @@ export async function POST(request: Request) {
         });
       }
 
-      const result = streamFromDeepSearch({
+      // Wait for the result from the agent loop
+      const result = await streamFromDeepSearch({
         messages,
         telemetry: {
           isEnabled: true,
@@ -238,51 +238,10 @@ export async function POST(request: Request) {
             langfuseTraceId: trace.id,
           },
         },
-        onFinish: async ({ response }) => {
-          const responseMessages = response.messages;
-
-          const updatedMessages = appendResponseMessages({
-            messages,
-            responseMessages,
-          });
-
-          // Save the updated messages to the database
-          const firstMessage = updatedMessages[0];
-          const title = firstMessage?.content
-            ? typeof firstMessage.content === "string"
-              ? firstMessage.content.slice(0, 50) +
-                (firstMessage.content.length > 50 ? "..." : "")
-              : "New Chat"
-            : "New Chat";
-
-          const saveMessagesSpan = trace.span({
-            name: "save-chat-messages",
-            input: {
-              userId: session.user.id,
-              chatId: chatId,
-              title,
-              messageCount: updatedMessages.length,
-            },
-          });
-
-          const result = await upsertChat({
-            userId: session.user.id,
-            chatId: chatId,
-            title,
-            messages: updatedMessages,
-          });
-
-          saveMessagesSpan.end({
-            output: {
-              chatId: result.id,
-            },
-          });
-
-          // Flush the trace to Langfuse
-          await langfuse.flushAsync();
-        },
+        onFinish: null, // We'll handle persistence later
       });
 
+      // Once the result is ready, merge it into the data stream
       result.mergeIntoDataStream(dataStream);
     },
     onError: (e) => {

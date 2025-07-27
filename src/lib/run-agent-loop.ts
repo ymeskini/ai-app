@@ -4,6 +4,7 @@ import { getNextAction } from "~/lib/get-next-action";
 import { answerQuestion } from "~/lib/answer-question";
 import { SystemContext, type QueryResult, type QueryResultSearchResult } from "~/lib/system-context";
 import { env } from "~/env";
+import type { StreamTextResult } from "ai";
 
 /**
  * Search the web using Serper API
@@ -68,7 +69,7 @@ export const scrapeUrl = async (urls: string[]) => {
 export const runAgentLoop = async (
   userQuery: string,
   maxSteps = 10
-): Promise<string> => {
+): Promise<StreamTextResult<never, string>> => {
   // A persistent container for the state of our system
   const ctx = new SystemContext();
 
@@ -121,7 +122,7 @@ export const runAgentLoop = async (
       }
 
     } else if (nextAction.type === "answer") {
-      return await answerQuestion(ctx, userQuery);
+      return answerQuestion(ctx, userQuery);
     }
 
     // We increment the step counter
@@ -130,5 +131,5 @@ export const runAgentLoop = async (
 
   // If we've taken maxSteps actions and still don't have an answer,
   // we ask the LLM to give its best attempt at an answer
-  return await answerQuestion(ctx, userQuery, { isFinal: true });
+  return answerQuestion(ctx, userQuery, { isFinal: true });
 };

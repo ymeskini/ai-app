@@ -1,12 +1,12 @@
-import { generateText } from "ai";
+import { streamText } from "ai";
 import { model } from "~/lib/model";
 import type { SystemContext } from "~/lib/system-context";
 
-export const answerQuestion = async (
+export const answerQuestion = (
   context: SystemContext,
   userQuery: string,
   options: { isFinal?: boolean } = {}
-): Promise<string> => {
+) => {
   const { isFinal = false } = options;
 
   const systemPrompt = `
@@ -63,10 +63,8 @@ ${context.getScrapeHistory()}
 Provide a comprehensive answer to the user's question based on the information above.
 `.trim();
 
-  const result = await generateText({
+  return streamText({
     model,
     prompt: systemPrompt,
   });
-
-  return result.text;
 };
