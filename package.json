@@ -50,6 +50,7 @@
     "zod": "^3.23.3"
   },
   "devDependencies": {
+    "@tailwindcss/postcss": "^4.1.11",
     "@tailwindcss/typography": "^0.5.16",
     "@types/eslint": "^8.56.10",
     "@types/node": "^20.14.10",
@@ -67,14 +68,11 @@
     "evalite": "https://pkg.pr.new/mattpocock/evalite@120",
     "postcss": "^8.4.39",
     "prettier": "^3.3.2",
-    "prettier-plugin-tailwindcss": "^0.6.5",
-    "tailwind-scrollbar": "^3.1.0",
-    "tailwindcss": "^3.4.3",
+    "prettier-plugin-tailwindcss": "^0.6.14",
+    "tailwind-scrollbar": "^4.0.2",
+    "tailwindcss": "^4.1.11",
     "typescript": "^5.8.2",
     "vite-tsconfig-paths": "^5.1.4",
     "vitest": "^3.2.4"
-  },
-  "ct3aMetadata": {
-    "initVersion": "7.38.1"
   }
 }

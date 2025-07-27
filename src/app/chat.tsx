@@ -109,7 +109,7 @@ export const ChatPage = ({ userName, isAuthenticated, chatId, isNewChat, initial
     <>
       <div className="flex flex-1 flex-col min-h-0">
         <StickToBottom
-          className="mx-auto w-full max-w-[65ch] flex-1 min-h-0 [&>div]:overflow-y-auto [&>div]:scrollbar-thin [&>div]:scrollbar-track-gray-800 [&>div]:scrollbar-thumb-gray-600 [&>div]:hover:scrollbar-thumb-gray-500"
+          className="mx-auto w-full max-w-[65ch] flex-1 min-h-0 [&>div]:overflow-y-auto [&>div]:scrollbar-thin [&>div]:scrollbar-track-gray-800 [&>div]:scrollbar-thumb-gray-600 hover:[&>div]:scrollbar-thumb-gray-500"
           resize="instant"
           initial="instant"
           role="log"
@@ -144,13 +144,13 @@ export const ChatPage = ({ userName, isAuthenticated, chatId, isNewChat, initial
                 placeholder="Say something..."
                 autoFocus
                 aria-label="Chat input"
-                className="flex-1 rounded border border-gray-700 bg-gray-800 p-2 text-gray-200 placeholder-gray-400 focus:border-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-400 disabled:opacity-50"
+                className="flex-1 rounded-sm border border-gray-700 bg-gray-800 p-2 text-gray-200 placeholder-gray-400 focus:border-gray-500 focus:outline-hidden focus:ring-2 focus:ring-blue-400 disabled:opacity-50"
                 disabled={isLoading}
               />
               <button
                 type="submit"
                 disabled={isLoading}
-                className="rounded bg-gray-700 px-4 py-2 text-white hover:bg-gray-600 focus:border-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-400 disabled:opacity-50 disabled:hover:bg-gray-700"
+                className="rounded bg-gray-700 px-4 py-2 text-white hover:bg-gray-600 focus:border-gray-500 focus:outline-hidden focus:ring-2 focus:ring-blue-400 disabled:opacity-50 disabled:hover:bg-gray-700"
               >
                 {isLoading ? (
                   <Loader2 className="size-4 animate-spin" />

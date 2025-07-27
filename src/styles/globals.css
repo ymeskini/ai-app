@@ -1,3 +1,38 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import 'tailwindcss';
+@plugin 'tailwind-scrollbar';
+@plugin "@tailwindcss/typography";
+
+@theme {
+  --font-family-sans: var(--font-geist-sans);
+
+  /* Typography plugin invert theme */
+  --typography-invert-body: var(--tw-prose-invert-body);
+  --typography-invert-headings: var(--tw-prose-invert-headings);
+  --typography-invert-links: var(--tw-prose-invert-links);
+  --typography-invert-links-hover: var(--tw-prose-invert-links-hover);
+  --typography-invert-underline: var(--tw-prose-invert-underline);
+  --typography-invert-underline-hover: var(--tw-prose-invert-underline-hover);
+  --typography-invert-bold: var(--tw-prose-invert-bold);
+  --typography-invert-counters: var(--tw-prose-invert-counters);
+  --typography-invert-bullets: var(--tw-prose-invert-bullets);
+  --typography-invert-hr: var(--tw-prose-invert-hr);
+  --typography-invert-quote-borders: var(--tw-prose-invert-quote-borders);
+  --typography-invert-captions: var(--tw-prose-invert-captions);
+  --typography-invert-code: var(--tw-prose-invert-code);
+  --typography-invert-code-bg: var(--tw-prose-invert-code-bg);
+  --typography-invert-pre-code: var(--tw-prose-invert-pre-code);
+  --typography-invert-pre-bg: var(--tw-prose-invert-pre-bg);
+  --typography-invert-pre-border: var(--tw-prose-invert-pre-border);
+  --typography-invert-th-borders: var(--tw-prose-invert-th-borders);
+  --typography-invert-td-borders: var(--tw-prose-invert-td-borders);
+}
+
+@layer base {
+  *,
+  ::after,
+  ::before,
+  ::backdrop,
+  ::file-selector-button {
+    border-color: var(--color-gray-200, currentColor);
+  }
+}
