@@ -1,12 +1,13 @@
 import type { Message } from "ai";
-import {
-  createDataStreamResponse,
-} from "ai";
+import { createDataStreamResponse } from "ai";
 import { Langfuse } from "langfuse";
 import { env } from "~/env";
 import { auth } from "~/server/auth";
-import { checkRateLimit, incrementRequestCount } from "~/server/redis/redis";
-import { checkGlobalRateLimit, recordRateLimit } from "~/server/redis/global-rate-limit";
+// import { checkRateLimit, incrementRequestCount } from "~/server/redis/redis";
+// import {
+//   checkGlobalRateLimit,
+//   recordRateLimit,
+// } from "~/server/redis/global-rate-limit";
 import { upsertChat } from "~/server/db/chat";
 import { streamFromDeepSearch } from "~/lib/deep-search";
 
@@ -15,6 +16,13 @@ const langfuse = new Langfuse({
 });
 
 export const maxDuration = 60;
+
+// const globalRateLimitConfig = {
+//   maxRequests: 1, // For testing: only 1 request
+//   windowMs: 5_000, // For testing: 5 seconds window
+//   keyPrefix: "global",
+//   maxRetries: 3,
+// };
 
 export async function POST(request: Request) {
   const session = await auth();
@@ -29,135 +37,134 @@ export async function POST(request: Request) {
     userId: session.user.id,
   });
 
-  // Global rate limiting configuration
-  const globalRateLimitConfig = {
-    maxRequests: 1, // For testing: only 1 request
-    windowMs: 5_000, // For testing: 5 seconds window
-    keyPrefix: "global",
-    maxRetries: 3,
-  };
-
   // Check global rate limiting first
-  const globalRateLimitSpan = trace.span({
-    name: "check-global-rate-limit",
-    input: globalRateLimitConfig,
-  });
+  // const globalRateLimitSpan = trace.span({
+  //   name: "check-global-rate-limit",
+  //   input: globalRateLimitConfig,
+  // });
 
-  const globalRateLimitCheck = await checkGlobalRateLimit(globalRateLimitConfig);
+  // const globalRateLimitCheck = await checkGlobalRateLimit(
+  //   globalRateLimitConfig,
+  // );
 
-  globalRateLimitSpan.end({
-    output: {
-      allowed: globalRateLimitCheck.allowed,
-      remaining: globalRateLimitCheck.remaining,
-      totalHits: globalRateLimitCheck.totalHits,
-      resetTime: globalRateLimitCheck.resetTime,
-    },
-  });
+  // globalRateLimitSpan.end({
+  //   output: {
+  //     allowed: globalRateLimitCheck.allowed,
+  //     remaining: globalRateLimitCheck.remaining,
+  //     totalHits: globalRateLimitCheck.totalHits,
+  //     resetTime: globalRateLimitCheck.resetTime,
+  //   },
+  // });
 
-  if (!globalRateLimitCheck.allowed) {
-    const retrySpan = trace.span({
-      name: "global-rate-limit-retry",
-      input: {
-        resetTime: globalRateLimitCheck.resetTime,
-        totalHits: globalRateLimitCheck.totalHits,
-      },
-    });
+  // if (!globalRateLimitCheck.allowed) {
+  //   const retrySpan = trace.span({
+  //     name: "global-rate-limit-retry",
+  //     input: {
+  //       resetTime: globalRateLimitCheck.resetTime,
+  //       totalHits: globalRateLimitCheck.totalHits,
+  //     },
+  //   });
 
-    const isAllowed = await globalRateLimitCheck.retry();
+  //   const isAllowed = await globalRateLimitCheck.retry();
 
-    retrySpan.end({
-      output: {
-        retrySuccessful: isAllowed,
-      },
-    });
+  //   retrySpan.end({
+  //     output: {
+  //       retrySuccessful: isAllowed,
+  //     },
+  //   });
 
-    // If still not allowed after retries, fail the request
-    if (!isAllowed) {
-      return new Response(
-        JSON.stringify({
-          error: "Global rate limit exceeded",
-          message: "The system is currently experiencing high load. Please try again later.",
-          resetTime: new Date(globalRateLimitCheck.resetTime).toISOString(),
-        }),
-        {
-          status: 429,
-          headers: {
-            "Content-Type": "application/json",
-            "X-Global-Rate-Limit-Limit": globalRateLimitConfig.maxRequests.toString(),
-            "X-Global-Rate-Limit-Remaining": globalRateLimitCheck.remaining.toString(),
-            "X-Global-Rate-Limit-Reset": new Date(globalRateLimitCheck.resetTime).toISOString(),
-          },
-        },
-      );
-    }
-  }
+  //   // If still not allowed after retries, fail the request
+  //   if (!isAllowed) {
+  //     return new Response(
+  //       JSON.stringify({
+  //         error: "Global rate limit exceeded",
+  //         message:
+  //           "The system is currently experiencing high load. Please try again later.",
+  //         resetTime: new Date(globalRateLimitCheck.resetTime).toISOString(),
+  //       }),
+  //       {
+  //         status: 429,
+  //         headers: {
+  //           "Content-Type": "application/json",
+  //           "X-Global-Rate-Limit-Limit":
+  //             globalRateLimitConfig.maxRequests.toString(),
+  //           "X-Global-Rate-Limit-Remaining":
+  //             globalRateLimitCheck.remaining.toString(),
+  //           "X-Global-Rate-Limit-Reset": new Date(
+  //             globalRateLimitCheck.resetTime,
+  //           ).toISOString(),
+  //         },
+  //       },
+  //     );
+  //   }
+  // }
 
-  // Record the global rate limit usage
-  await recordRateLimit(globalRateLimitConfig);
+  // // Record the global rate limit usage
+  // await recordRateLimit(globalRateLimitConfig);
 
-  // Check rate limiting
-  const rateLimitSpan = trace.span({
-    name: "check-rate-limit",
-    input: {
-      userId: session.user.id,
-    },
-  });
+  // // Check rate limiting
+  // const rateLimitSpan = trace.span({
+  //   name: "check-rate-limit",
+  //   input: {
+  //     userId: session.user.id,
+  //   },
+  // });
 
-  const { allowed, remainingRequests, isAdmin } = await checkRateLimit(
-    session.user.id,
-  );
+  // const { allowed, remainingRequests, isAdmin } = await checkRateLimit(
+  //   session.user.id,
+  // );
 
-  rateLimitSpan.end({
-    output: {
-      allowed,
-      remainingRequests,
-      isAdmin,
-    },
-  });
+  // rateLimitSpan.end({
+  //   output: {
+  //     allowed,
+  //     remainingRequests,
+  //     isAdmin,
+  //   },
+  // });
 
-  if (!allowed) {
-    // Calculate when the daily limit will reset (end of day)
-    const now = new Date();
-    const endOfDay = new Date(now);
-    endOfDay.setHours(23, 59, 59, 999);
+  // if (!allowed) {
+  //   // Calculate when the daily limit will reset (end of day)
+  //   const now = new Date();
+  //   const endOfDay = new Date(now);
+  //   endOfDay.setHours(23, 59, 59, 999);
 
-    return new Response(
-      JSON.stringify({
-        error: "Rate limit exceeded",
-        message:
-          "You have exceeded your daily request limit. Please try again tomorrow.",
-        remainingRequests: 0,
-        resetTime: endOfDay.toISOString(),
-      }),
-      {
-        status: 429,
-        headers: {
-          "Content-Type": "application/json",
-          "X-Rate-Limit-Limit": "5",
-          "X-Rate-Limit-Remaining": "0",
-          "X-Rate-Limit-Reset": endOfDay.toISOString(),
-        },
-      },
-    );
-  }
+  //   return new Response(
+  //     JSON.stringify({
+  //       error: "Rate limit exceeded",
+  //       message:
+  //         "You have exceeded your daily request limit. Please try again tomorrow.",
+  //       remainingRequests: 0,
+  //       resetTime: endOfDay.toISOString(),
+  //     }),
+  //     {
+  //       status: 429,
+  //       headers: {
+  //         "Content-Type": "application/json",
+  //         "X-Rate-Limit-Limit": "5",
+  //         "X-Rate-Limit-Remaining": "0",
+  //         "X-Rate-Limit-Reset": endOfDay.toISOString(),
+  //       },
+  //     },
+  //   );
+  // }
 
   // Increment request count (only if not admin to avoid unnecessary Redis calls)
-  if (!isAdmin) {
-    const incrementSpan = trace.span({
-      name: "increment-request-count",
-      input: {
-        userId: session.user.id,
-      },
-    });
+  // if (!isAdmin) {
+  //   const incrementSpan = trace.span({
+  //     name: "increment-request-count",
+  //     input: {
+  //       userId: session.user.id,
+  //     },
+  //   });
 
-    const newCount = await incrementRequestCount(session.user.id);
+  //   const newCount = await incrementRequestCount(session.user.id);
 
-    incrementSpan.end({
-      output: {
-        newCount,
-      },
-    });
-  }
+  //   incrementSpan.end({
+  //     output: {
+  //       newCount,
+  //     },
+  //   });
+  // }
 
   const body = (await request.json()) as {
     messages: Array<Message>;
@@ -247,11 +254,6 @@ export async function POST(request: Request) {
     onError: (e) => {
       console.error(e);
       return "Oops, an error occured!";
-    },
-    headers: {
-      "X-Rate-Limit-Limit": "100",
-      "X-Rate-Limit-Remaining": remainingRequests.toString(),
-      "X-Rate-Limit-Admin": isAdmin.toString(),
     },
   });
 }
