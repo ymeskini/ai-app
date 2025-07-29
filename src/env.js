@@ -8,17 +8,18 @@ export const env = createEnv({
    */
   server: {
     REDIS_URL: z.string().url(),
+    DATABASE_URL: z.string().url(),
+    NODE_ENV: z
+    .enum(["development", "test", "production"])
+    .default("development"),
+    GOOGLE_GENERATIVE_AI_API_KEY: z.string(),
+    AUTH_DISCORD_ID: z.string(),
+    AUTH_DISCORD_SECRET: z.string(),
     AUTH_SECRET:
       process.env.NODE_ENV === "production"
         ? z.string()
         : z.string().optional(),
-    DATABASE_URL: z.string().url(),
-    NODE_ENV: z
-      .enum(["development", "test", "production"])
-      .default("development"),
-    GOOGLE_GENERATIVE_AI_API_KEY: z.string(),
-    AUTH_DISCORD_ID: z.string(),
-    AUTH_DISCORD_SECRET: z.string(),
+    AUTH_URL: z.string().url(),
     ALLOWED_USER: z.string(),
     SERPER_API_KEY: z.string(),
     SEARCH_RESULTS_COUNT: z.coerce.number().default(10),
@@ -48,6 +49,7 @@ export const env = createEnv({
     GOOGLE_GENERATIVE_AI_API_KEY: process.env.GOOGLE_GENERATIVE_AI_API_KEY,
     AUTH_DISCORD_ID: process.env.AUTH_DISCORD_ID,
     AUTH_DISCORD_SECRET: process.env.AUTH_DISCORD_SECRET,
+    AUTH_URL: process.env.AUTH_URL,
     ALLOWED_USER: process.env.ALLOWED_USER,
     SERPER_API_KEY: process.env.SERPER_API_KEY,
     SEARCH_RESULTS_COUNT: process.env.SEARCH_RESULTS_COUNT,
