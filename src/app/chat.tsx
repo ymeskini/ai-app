@@ -107,25 +107,27 @@ export const ChatPage = ({ userName, isAuthenticated, chatId, isNewChat, initial
 
   return (
     <>
-      <div className="flex flex-1 flex-col min-h-0 bg-white">
+      <div className="flex flex-1 flex-col min-h-0 bg-white h-full">
         <StickToBottom
-          className="mx-auto w-full max-w-[65ch] flex-1 min-h-0 [&>div]:overflow-y-auto [&>div]:scrollbar-thin [&>div]:scrollbar-track-gray-100 [&>div]:scrollbar-thumb-gray-300 hover:[&>div]:scrollbar-thumb-gray-400"
+          className="w-full flex-1 min-h-0 [&>div]:overflow-y-auto [&>div]:scrollbar-thin [&>div]:scrollbar-track-gray-100 [&>div]:scrollbar-thumb-gray-300 hover:[&>div]:scrollbar-thumb-gray-400"
           resize="instant"
           initial="instant"
           role="log"
           aria-label="Chat messages"
         >
           <StickToBottom.Content className="p-4">
-            {messages.map((message, index) => {
-              return (
-                <ChatMessage
-                  key={message.id || index}
-                  parts={message.parts}
-                  role={message.role}
-                  userName={userName}
-                />
-              );
-            })}
+            <div className="mx-auto max-w-[65ch]">
+              {messages.map((message, index) => {
+                return (
+                  <ChatMessage
+                    key={message.id || index}
+                    parts={message.parts}
+                    role={message.role}
+                    userName={userName}
+                  />
+                );
+              })}
+            </div>
           </StickToBottom.Content>
         </StickToBottom>
 
