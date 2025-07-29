@@ -2,6 +2,7 @@ import { DrizzleAdapter } from "@auth/drizzle-adapter";
 import { type DefaultSession, type NextAuthConfig } from "next-auth";
 import DiscordProvider from "next-auth/providers/discord";
 
+import { env } from "~/env";
 import { db } from "~/server/db";
 import {
   accounts,
@@ -56,6 +57,20 @@ export const authConfig = {
     verificationTokensTable: verificationTokens,
   }),
   callbacks: {
+    signIn: async ({ user: _user, account, profile }) => {
+      // Only allow Discord sign-ins from the specified allowed user
+      if (account?.provider === "discord") {
+        // Check if the Discord username matches the allowed user
+        // profile.username contains the Discord username
+        const discordUsername = profile?.username as string | undefined;
+        if (discordUsername !== env.ALLOWED_USER) {
+          console.log(`Unauthorized login attempt by Discord user: ${discordUsername ?? 'unknown'}`);
+          // Return false to reject the sign-in
+          return false;
+        }
+      }
+      return true;
+    },
     session: ({ session, user }) => ({
       ...session,
       user: {
@@ -63,5 +78,9 @@ export const authConfig = {
         id: user.id,
       },
     }),
+  },
+  pages: {
+    signIn: '/', // Redirect to home page after sign in
+    error: '/', // Redirect to home page on error
   },
 } satisfies NextAuthConfig;

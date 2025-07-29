@@ -176,6 +176,16 @@ For production, update the environment variables in `docker-compose.yml`:
 - `NODE_ENV=production`
 - `NEXTAUTH_URL` - Set to your production domain
 
+### Authentication Configuration
+
+The application supports Discord authentication with user restrictions:
+
+- `AUTH_DISCORD_ID` - Your Discord application client ID
+- `AUTH_DISCORD_SECRET` - Your Discord application client secret
+- `ALLOWED_USER` - Discord username that is allowed to sign in (only this user can access the app)
+
+When an unauthorized user attempts to sign in, they will be redirected back to the homepage with an error message explaining that access is denied.
+
 ### Docker Deployment
 
 ```bash

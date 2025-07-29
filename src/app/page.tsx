@@ -4,14 +4,15 @@ import type { Message } from "ai";
 import { auth } from "~/server/auth/index.ts";
 import { ChatPage } from "./chat.tsx";
 import { AuthButton } from "../components/auth-button.tsx";
+import { ErrorMessage } from "../components/error-message.tsx";
 import { getChats, getChat } from "~/server/db/chat.ts";
 
 export default async function HomePage({
   searchParams,
 }: {
-  searchParams: Promise<{ id?: string }>;
+  searchParams: Promise<{ id?: string; error?: string }>;
 }) {
-  const { id } = await searchParams;
+  const { id, error } = await searchParams;
   const session = await auth();
   const userName = session?.user?.name ?? "Guest";
   const isAuthenticated = !!session?.user;
@@ -39,6 +40,22 @@ export default async function HomePage({
     // to construct the content
     content: "",
   })) ?? [];
+
+  // Handle authentication errors
+  const getErrorMessage = (errorType: string | undefined) => {
+    switch (errorType) {
+      case 'AccessDenied':
+        return 'Access denied. Only authorized users can sign in with Discord.';
+      case 'OAuthSignin':
+        return 'Error occurred during Discord sign-in. Please try again.';
+      case 'OAuthCallback':
+        return 'Authentication failed. Please try signing in again.';
+      default:
+        return null;
+    }
+  };
+
+  const errorMessage = getErrorMessage(error);
 
   return (
     <div className="flex h-screen bg-gray-950">
@@ -90,14 +107,21 @@ export default async function HomePage({
         </div>
       </div>
 
-      <ChatPage
-        key={chatId}
-        userName={userName}
-        isAuthenticated={isAuthenticated}
-        chatId={chatId}
-        isNewChat={isNewChat}
-        initialMessages={initialMessages}
-      />
+      <div className="flex flex-1 flex-col">
+        {errorMessage && (
+          <div className="border-b border-gray-700 p-4">
+            <ErrorMessage message={errorMessage} />
+          </div>
+        )}
+        <ChatPage
+          key={chatId}
+          userName={userName}
+          isAuthenticated={isAuthenticated}
+          chatId={chatId}
+          isNewChat={isNewChat}
+          initialMessages={initialMessages}
+        />
+      </div>
     </div>
   );
 }
