@@ -19,7 +19,6 @@ export const env = createEnv({
       process.env.NODE_ENV === "production"
         ? z.string()
         : z.string().optional(),
-    AUTH_URL: z.string().url(),
     ALLOWED_USER: z.string(),
     SERPER_API_KEY: z.string(),
     SEARCH_RESULTS_COUNT: z.coerce.number().default(10),
@@ -43,13 +42,12 @@ export const env = createEnv({
    */
   runtimeEnv: {
     REDIS_URL: process.env.REDIS_URL,
-    AUTH_SECRET: process.env.AUTH_SECRET,
     DATABASE_URL: process.env.DATABASE_URL,
     NODE_ENV: process.env.NODE_ENV,
     GOOGLE_GENERATIVE_AI_API_KEY: process.env.GOOGLE_GENERATIVE_AI_API_KEY,
+    AUTH_SECRET: process.env.AUTH_SECRET,
     AUTH_DISCORD_ID: process.env.AUTH_DISCORD_ID,
     AUTH_DISCORD_SECRET: process.env.AUTH_DISCORD_SECRET,
-    AUTH_URL: process.env.AUTH_URL,
     ALLOWED_USER: process.env.ALLOWED_USER,
     SERPER_API_KEY: process.env.SERPER_API_KEY,
     SEARCH_RESULTS_COUNT: process.env.SEARCH_RESULTS_COUNT,
