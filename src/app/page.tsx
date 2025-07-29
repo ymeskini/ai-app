@@ -18,6 +18,7 @@ import {
   SidebarHeader,
   SidebarInset,
   SidebarMenu,
+  SidebarTrigger,
 } from "~/components/ui/sidebar";
 import { Button } from "~/components/ui/button";
 
@@ -125,6 +126,10 @@ export default async function HomePage({
         </Sidebar>
 
         <SidebarInset className="flex-1 bg-white">
+          <div className="flex items-center gap-2 p-4 border-b border-gray-200">
+            <SidebarTrigger className="h-8 w-8 text-gray-600 hover:text-gray-900 hover:bg-gray-100" />
+            <div className="text-sm font-medium text-gray-900">Chat</div>
+          </div>
           {errorMessage && (
             <div className="border-b border-gray-200 p-4 bg-red-50">
               <ErrorMessage message={errorMessage} />
