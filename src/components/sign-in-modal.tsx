@@ -27,17 +27,17 @@ export const SignInModal = ({ isOpen, onClose }: SignInModalProps) => {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-      <div className="w-full max-w-md rounded-lg bg-gray-900 p-6 shadow-xl">
-        <h2 className="mb-4 text-xl font-semibold text-gray-200">
+      <div className="w-full max-w-md rounded-lg bg-white border border-gray-200 p-6 shadow-xl">
+        <h2 className="mb-4 text-xl font-semibold text-gray-900">
           Sign in required
         </h2>
-        <p className="mb-6 text-gray-400">
+        <p className="mb-6 text-gray-600">
           Please sign in to continue your conversation.
         </p>
         <div className="flex justify-end gap-3">
           <button
             onClick={onClose}
-            className="rounded px-4 py-2 text-gray-400 hover:text-gray-300"
+            className="rounded px-4 py-2 text-gray-600 hover:text-gray-800 hover:bg-gray-100"
             disabled={isSigningIn}
           >
             Cancel

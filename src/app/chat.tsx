@@ -1,7 +1,7 @@
 "use client";
 
 import { useChat } from "@ai-sdk/react";
-import { Loader2 } from "lucide-react";
+import { Loader2, ArrowUp } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import type { Message } from "ai";
@@ -107,9 +107,9 @@ export const ChatPage = ({ userName, isAuthenticated, chatId, isNewChat, initial
 
   return (
     <>
-      <div className="flex flex-1 flex-col min-h-0">
+      <div className="flex flex-1 flex-col min-h-0 bg-white">
         <StickToBottom
-          className="mx-auto w-full max-w-[65ch] flex-1 min-h-0 [&>div]:overflow-y-auto [&>div]:scrollbar-thin [&>div]:scrollbar-track-gray-800 [&>div]:scrollbar-thumb-gray-600 hover:[&>div]:scrollbar-thumb-gray-500"
+          className="mx-auto w-full max-w-[65ch] flex-1 min-h-0 [&>div]:overflow-y-auto [&>div]:scrollbar-thin [&>div]:scrollbar-track-gray-100 [&>div]:scrollbar-thumb-gray-300 hover:[&>div]:scrollbar-thumb-gray-400"
           resize="instant"
           initial="instant"
           role="log"
@@ -130,32 +130,32 @@ export const ChatPage = ({ userName, isAuthenticated, chatId, isNewChat, initial
         </StickToBottom>
 
         {rateLimitError && (
-          <div className="border-t border-gray-700 p-4">
+          <div className="border-t border-gray-200 p-4">
             <ErrorMessage message={rateLimitError} />
           </div>
         )}
 
-        <div className="border-t border-gray-700">
-          <form onSubmit={handleSubmit} className="mx-auto max-w-[65ch] p-4">
-            <div className="flex gap-2">
+        <div className="px-4 py-4">
+          <form onSubmit={handleSubmit} className="mx-auto max-w-[65ch]">
+            <div className="relative flex items-center">
               <input
                 value={input}
                 onChange={handleInputChange}
                 placeholder="Say something..."
                 autoFocus
                 aria-label="Chat input"
-                className="flex-1 rounded-sm border border-gray-700 bg-gray-800 p-2 text-gray-200 placeholder-gray-400 focus:border-gray-500 focus:outline-hidden focus:ring-2 focus:ring-blue-400 disabled:opacity-50"
+                className="w-full rounded-full border border-gray-300 bg-white py-2 px-4 pr-12 text-gray-900 placeholder-gray-500 focus:border-gray-400 focus:outline-hidden focus:ring-2 focus:ring-blue-400 disabled:opacity-50"
                 disabled={isLoading}
               />
               <button
                 type="submit"
-                disabled={isLoading}
-                className="rounded bg-gray-700 px-4 py-2 text-white hover:bg-gray-600 focus:border-gray-500 focus:outline-hidden focus:ring-2 focus:ring-blue-400 disabled:opacity-50 disabled:hover:bg-gray-700"
+                disabled={isLoading || !input.trim()}
+                className="absolute right-2 flex h-8 w-8 items-center justify-center rounded-full bg-gray-900 text-white hover:bg-gray-800 focus:outline-hidden focus:ring-2 focus:ring-blue-400 disabled:opacity-50 disabled:hover:bg-gray-900 transition-colors"
               >
                 {isLoading ? (
-                  <Loader2 className="size-4 animate-spin" />
+                  <Loader2 className="h-4 w-4 animate-spin" />
                 ) : (
-                  "Send"
+                  <ArrowUp className="h-4 w-4" />
                 )}
               </button>
             </div>

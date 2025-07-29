@@ -5,7 +5,21 @@ import { auth } from "~/server/auth/index.ts";
 import { ChatPage } from "./chat.tsx";
 import { AuthButton } from "../components/auth-button.tsx";
 import { ErrorMessage } from "../components/error-message.tsx";
+import { ChatItem } from "../components/chat-item.tsx";
 import { getChats, getChat } from "~/server/db/chat.ts";
+import {
+  SidebarProvider,
+  Sidebar,
+  SidebarContent,
+  SidebarFooter,
+  SidebarGroup,
+  SidebarGroupContent,
+  SidebarGroupLabel,
+  SidebarHeader,
+  SidebarInset,
+  SidebarMenu,
+} from "~/components/ui/sidebar";
+import { Button } from "~/components/ui/button";
 
 export default async function HomePage({
   searchParams,
@@ -58,70 +72,74 @@ export default async function HomePage({
   const errorMessage = getErrorMessage(error);
 
   return (
-    <div className="flex h-screen bg-gray-950">
-      {/* Sidebar */}
-      <div className="flex w-64 flex-col border-r border-gray-700 bg-gray-900">
-        <div className="p-4">
-          <div className="flex items-center justify-between">
-            <h2 className="text-sm font-semibold text-gray-400">Your Chats</h2>
-            {isAuthenticated && (
-              <Link
-                href="/"
-                className="flex h-8 w-8 items-center justify-center rounded-lg bg-gray-800 text-gray-300 hover:bg-gray-700 focus:outline-hidden focus:ring-2 focus:ring-blue-400"
-                title="New Chat"
-              >
-                <PlusIcon className="h-5 w-5" />
-              </Link>
-            )}
-          </div>
-        </div>
-        <div className="-mt-1 flex-1 space-y-2 overflow-y-auto px-4 pt-1 scrollbar-thin scrollbar-track-gray-800 scrollbar-thumb-gray-600">
-          {chats.length > 0 ? (
-            chats.map((chat) => (
-              <div key={chat.id} className="flex items-center gap-2">
-                <Link
-                  href={`/?id=${chat.id}`}
-                  className={`flex-1 rounded-lg p-3 text-left text-sm text-gray-300 focus:outline-hidden focus:ring-2 focus:ring-blue-400 ${
-                    chat.id === id
-                      ? "bg-gray-700"
-                      : "hover:bg-gray-750 bg-gray-800"
-                  }`}
-                >
-                  {chat.title}
-                </Link>
-              </div>
-            ))
-          ) : (
-            <p className="text-sm text-gray-500">
-              {isAuthenticated
-                ? "No chats yet. Start a new conversation!"
-                : "Sign in to start chatting"}
-            </p>
-          )}
-        </div>
-        <div className="p-4">
-          <AuthButton
-            isAuthenticated={isAuthenticated}
-            userImage={session?.user?.image}
-          />
-        </div>
-      </div>
+    <SidebarProvider>
+      <div className="flex h-screen w-full bg-white">
+        <Sidebar className="border-r border-gray-200 bg-white">
+          <SidebarHeader className="p-4">
+            <div className="flex items-center justify-between">
+              <SidebarGroupLabel className="text-sm font-semibold text-gray-700">
+                Your Chats
+              </SidebarGroupLabel>
+              {isAuthenticated && (
+                <Button variant="ghost" size="icon" className="h-8 w-8 text-gray-600 hover:text-gray-900 hover:bg-gray-100" asChild>
+                  <Link href="/" title="New Chat">
+                    <PlusIcon className="h-5 w-5" />
+                  </Link>
+                </Button>
+              )}
+            </div>
+          </SidebarHeader>
 
-      <div className="flex flex-1 flex-col">
-        {errorMessage && (
-          <div className="border-b border-gray-700 p-4">
-            <ErrorMessage message={errorMessage} />
-          </div>
-        )}
-        <ChatPage
-          key={chatId}
-          userName={userName}
-          isAuthenticated={isAuthenticated}
-          chatId={chatId}
-          isNewChat={isNewChat}
-          initialMessages={initialMessages}
-        />
+          <SidebarContent className="px-4">
+            <SidebarGroup>
+              <SidebarGroupContent>
+                <SidebarMenu>
+                  {chats.length > 0 ? (
+                    chats.map((chat) => (
+                      <ChatItem
+                        key={chat.id}
+                        chat={chat}
+                        isActive={chat.id === id}
+                      />
+                    ))
+                  ) : (
+                    <div className="px-2 py-3">
+                      <p className="text-sm text-gray-500">
+                        {isAuthenticated
+                          ? "No chats yet. Start a new conversation!"
+                          : "Sign in to start chatting"}
+                      </p>
+                    </div>
+                  )}
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </SidebarGroup>
+          </SidebarContent>
+
+          <SidebarFooter className="p-4 border-t border-gray-200">
+            <AuthButton
+              isAuthenticated={isAuthenticated}
+              userImage={session?.user?.image}
+            />
+          </SidebarFooter>
+        </Sidebar>
+
+        <SidebarInset className="flex-1 bg-white">
+          {errorMessage && (
+            <div className="border-b border-gray-200 p-4 bg-red-50">
+              <ErrorMessage message={errorMessage} />
+            </div>
+          )}
+          <ChatPage
+            key={chatId}
+            userName={userName}
+            isAuthenticated={isAuthenticated}
+            chatId={chatId}
+            isNewChat={isNewChat}
+            initialMessages={initialMessages}
+          />
+        </SidebarInset>
       </div>
-    </div>
+    </SidebarProvider>
   );
 }

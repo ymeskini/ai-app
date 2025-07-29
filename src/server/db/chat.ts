@@ -72,3 +72,15 @@ export const getChats = async (userId: string) => {
     orderBy: (chats, { desc }) => [desc(chats.updatedAt)],
   });
 };
+
+export const deleteChat = async (chatId: string, userId: string) => {
+  // First delete all messages associated with the chat
+  await db.delete(messages).where(eq(messages.chatId, chatId));
+
+  // Then delete the chat itself, but only if it belongs to the user
+  const result = await db.delete(chats).where(
+    and(eq(chats.id, chatId), eq(chats.userId, userId))
+  );
+
+  return result;
+};

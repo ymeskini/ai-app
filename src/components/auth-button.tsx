@@ -29,7 +29,7 @@ export function AuthButton({ isAuthenticated, userImage }: AuthButtonProps) {
   };
 
   return isAuthenticated ? (
-    <div className="hover:bg-gray-750 flex items-center gap-2 rounded-lg bg-gray-800 p-2 text-gray-300">
+    <div className="flex items-center gap-2 rounded-lg bg-gray-100 p-2 text-gray-700 hover:bg-gray-200">
       {userImage && (
         <Image
           src={userImage}
@@ -44,7 +44,7 @@ export function AuthButton({ isAuthenticated, userImage }: AuthButtonProps) {
           router.push("/");
           void signOut();
         }}
-        className="flex w-full items-center justify-center p-1 text-sm focus:outline-hidden focus:ring-2 focus:ring-blue-400"
+        className="flex w-full items-center justify-center p-1 text-sm text-gray-700 hover:text-gray-900 focus:outline-hidden focus:ring-2 focus:ring-blue-400"
       >
         Sign out
       </button>
@@ -53,7 +53,7 @@ export function AuthButton({ isAuthenticated, userImage }: AuthButtonProps) {
     <button
       onClick={handleSignIn}
       disabled={isSigningIn}
-      className="hover:bg-gray-750 flex w-full items-center justify-center gap-2 rounded-lg bg-gray-800 p-3 text-sm text-gray-300 focus:outline-hidden focus:ring-2 focus:ring-blue-400 disabled:opacity-50 disabled:cursor-not-allowed"
+      className="flex w-full items-center justify-center gap-2 rounded-lg bg-gray-100 p-3 text-sm text-gray-700 hover:bg-gray-200 focus:outline-hidden focus:ring-2 focus:ring-blue-400 disabled:opacity-50 disabled:cursor-not-allowed"
     >
       {isSigningIn ? (
         <>
