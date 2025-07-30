@@ -1,15 +1,26 @@
 import type { StreamTextResult, Message } from "ai";
 import { searchSerper } from "~/serper";
 import { bulkCrawlWebsitesWithJina, type CrawlResponse } from "~/lib/scraper";
-import { getNextAction, type OurMessageAnnotation } from "~/lib/get-next-action";
+import {
+  getNextAction,
+  type OurMessageAnnotation,
+} from "~/lib/get-next-action";
 import { answerQuestion } from "~/lib/answer-question";
-import { SystemContext, type QueryResult, type QueryResultSearchResult } from "~/lib/system-context";
+import {
+  SystemContext,
+  type QueryResult,
+  type QueryResultSearchResult,
+} from "~/lib/system-context";
 import { env } from "~/env";
+import type { StreamTextFinishResult } from "~/types/chat";
 
 /**
  * Search the web using Serper API
  */
-export const searchWeb = async (query: string, signal?: AbortSignal): Promise<QueryResultSearchResult[]> => {
+export const searchWeb = async (
+  query: string,
+  signal?: AbortSignal,
+): Promise<QueryResultSearchResult[]> => {
   const results = await searchSerper(
     { q: query, num: env.SEARCH_RESULTS_COUNT },
     signal,
@@ -20,7 +31,7 @@ export const searchWeb = async (query: string, signal?: AbortSignal): Promise<Qu
       title: result.title,
       url: result.link,
       snippet: result.snippet,
-      date: (result.date ?? new Date().toISOString().split('T')[0])!,
+      date: (result.date ?? new Date().toISOString().split("T")[0])!,
     };
   });
 };
@@ -70,8 +81,9 @@ export const runAgentLoop = async (
   userQuery: string,
   messages: Message[],
   maxSteps = 10,
-  writeMessageAnnotation?: (annotation: OurMessageAnnotation) => void,
-  langfuseTraceId?: string
+  writeMessageAnnotation: (annotation: OurMessageAnnotation) => void,
+  langfuseTraceId: string,
+  onFinish: (finishResult: StreamTextFinishResult) => void,
 ): Promise<StreamTextResult<never, string>> => {
   // A persistent container for the state of our system
   const ctx = new SystemContext();
@@ -79,7 +91,12 @@ export const runAgentLoop = async (
   // A loop that continues until we have an answer or we've taken maxSteps actions
   while (ctx.getStep() < maxSteps) {
     // We choose the next action based on the state of our system
-    const nextAction = await getNextAction(ctx, userQuery, messages, langfuseTraceId);
+    const nextAction = await getNextAction(
+      ctx,
+      userQuery,
+      messages,
+      langfuseTraceId,
+    );
 
     // Send annotation about the action we chose
     if (writeMessageAnnotation) {
@@ -96,25 +113,24 @@ export const runAgentLoop = async (
       // Convert search results to the format expected by SystemContext
       const queryResult: QueryResult = {
         query: nextAction.query,
-        results: searchResults.map(result => ({
+        results: searchResults.map((result) => ({
           date: result.date,
           title: result.title,
           url: result.url,
           snippet: result.snippet,
-        }))
+        })),
       };
 
       ctx.reportQueries([queryResult]);
-
     } else if (nextAction.type === "scrape") {
       const scrapeResults = await scrapeUrl(nextAction.urls);
 
       // Handle the case where scrapeResults might have an error
-      if ('success' in scrapeResults && !scrapeResults.success) {
+      if ("success" in scrapeResults && !scrapeResults.success) {
         // If bulk scraping failed, still try to report what we got
         const scrapeData = scrapeResults.results
-          .filter(result => result.success && result.content)
-          .map(result => ({
+          .filter((result) => result.success && result.content)
+          .map((result) => ({
             url: result.url,
             result: result.content!,
           }));
@@ -123,17 +139,19 @@ export const runAgentLoop = async (
       } else if (Array.isArray(scrapeResults)) {
         // Filter successful scrapes and report them
         const scrapeData = scrapeResults
-          .filter(result => result.success && result.content)
-          .map(result => ({
+          .filter((result) => result.success && result.content)
+          .map((result) => ({
             url: result.url,
             result: result.content!,
           }));
 
         ctx.reportScrapes(scrapeData);
       }
-
     } else if (nextAction.type === "answer") {
-      return answerQuestion(ctx, userQuery, messages, { langfuseTraceId });
+      return answerQuestion(ctx, userQuery, messages, {
+        langfuseTraceId,
+        onFinish,
+      });
     }
 
     // We increment the step counter
@@ -142,5 +160,9 @@ export const runAgentLoop = async (
 
   // If we've taken maxSteps actions and still don't have an answer,
   // we ask the LLM to give its best attempt at an answer
-  return answerQuestion(ctx, userQuery, messages, { isFinal: true, langfuseTraceId });
+  return answerQuestion(ctx, userQuery, messages, {
+    isFinal: true,
+    langfuseTraceId,
+    onFinish,
+  });
 };

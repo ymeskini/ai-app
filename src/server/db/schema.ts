@@ -136,6 +136,7 @@ export const messages = createTable(
       .references(() => chats.id),
     role: varchar("role", { length: 50 }).notNull(),
     parts: json("parts").notNull(),
+    annotations: json("annotations"),
     order: integer("order").notNull(),
     createdAt: timestamp("created_at", {
       mode: "date",

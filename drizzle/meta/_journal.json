@@ -15,6 +15,13 @@
       "when": 1752657393749,
       "tag": "0001_square_angel",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1753897136848,
+      "tag": "0002_clean_tombstone",
+      "breakpoints": true
     }
   ]
 }

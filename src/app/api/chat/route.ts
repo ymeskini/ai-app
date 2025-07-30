@@ -3,13 +3,15 @@ import { createDataStreamResponse } from "ai";
 import { Langfuse } from "langfuse";
 import { env } from "~/env";
 import { auth } from "~/server/auth";
-// import { checkRateLimit, incrementRequestCount } from "~/server/redis/redis";
-// import {
-//   checkGlobalRateLimit,
-//   recordRateLimit,
-// } from "~/server/redis/global-rate-limit";
+
 import { upsertChat } from "~/server/db/chat";
 import { streamFromDeepSearch } from "~/lib/deep-search";
+import type { OurMessageAnnotation } from "~/lib/get-next-action";
+import type {
+  StreamTextFinishResult,
+  SerializableMessageAnnotation,
+} from "~/types/chat";
+import { serializeAnnotation } from "~/types/chat";
 
 const langfuse = new Langfuse({
   environment: env.NODE_ENV,
@@ -17,12 +19,6 @@ const langfuse = new Langfuse({
 
 export const maxDuration = 60;
 
-// const globalRateLimitConfig = {
-//   maxRequests: 1, // For testing: only 1 request
-//   windowMs: 5_000, // For testing: 5 seconds window
-//   keyPrefix: "global",
-//   maxRetries: 3,
-// };
 
 export async function POST(request: Request) {
   const session = await auth();
@@ -37,134 +33,6 @@ export async function POST(request: Request) {
     userId: session.user.id,
   });
 
-  // Check global rate limiting first
-  // const globalRateLimitSpan = trace.span({
-  //   name: "check-global-rate-limit",
-  //   input: globalRateLimitConfig,
-  // });
-
-  // const globalRateLimitCheck = await checkGlobalRateLimit(
-  //   globalRateLimitConfig,
-  // );
-
-  // globalRateLimitSpan.end({
-  //   output: {
-  //     allowed: globalRateLimitCheck.allowed,
-  //     remaining: globalRateLimitCheck.remaining,
-  //     totalHits: globalRateLimitCheck.totalHits,
-  //     resetTime: globalRateLimitCheck.resetTime,
-  //   },
-  // });
-
-  // if (!globalRateLimitCheck.allowed) {
-  //   const retrySpan = trace.span({
-  //     name: "global-rate-limit-retry",
-  //     input: {
-  //       resetTime: globalRateLimitCheck.resetTime,
-  //       totalHits: globalRateLimitCheck.totalHits,
-  //     },
-  //   });
-
-  //   const isAllowed = await globalRateLimitCheck.retry();
-
-  //   retrySpan.end({
-  //     output: {
-  //       retrySuccessful: isAllowed,
-  //     },
-  //   });
-
-  //   // If still not allowed after retries, fail the request
-  //   if (!isAllowed) {
-  //     return new Response(
-  //       JSON.stringify({
-  //         error: "Global rate limit exceeded",
-  //         message:
-  //           "The system is currently experiencing high load. Please try again later.",
-  //         resetTime: new Date(globalRateLimitCheck.resetTime).toISOString(),
-  //       }),
-  //       {
-  //         status: 429,
-  //         headers: {
-  //           "Content-Type": "application/json",
-  //           "X-Global-Rate-Limit-Limit":
-  //             globalRateLimitConfig.maxRequests.toString(),
-  //           "X-Global-Rate-Limit-Remaining":
-  //             globalRateLimitCheck.remaining.toString(),
-  //           "X-Global-Rate-Limit-Reset": new Date(
-  //             globalRateLimitCheck.resetTime,
-  //           ).toISOString(),
-  //         },
-  //       },
-  //     );
-  //   }
-  // }
-
-  // // Record the global rate limit usage
-  // await recordRateLimit(globalRateLimitConfig);
-
-  // // Check rate limiting
-  // const rateLimitSpan = trace.span({
-  //   name: "check-rate-limit",
-  //   input: {
-  //     userId: session.user.id,
-  //   },
-  // });
-
-  // const { allowed, remainingRequests, isAdmin } = await checkRateLimit(
-  //   session.user.id,
-  // );
-
-  // rateLimitSpan.end({
-  //   output: {
-  //     allowed,
-  //     remainingRequests,
-  //     isAdmin,
-  //   },
-  // });
-
-  // if (!allowed) {
-  //   // Calculate when the daily limit will reset (end of day)
-  //   const now = new Date();
-  //   const endOfDay = new Date(now);
-  //   endOfDay.setHours(23, 59, 59, 999);
-
-  //   return new Response(
-  //     JSON.stringify({
-  //       error: "Rate limit exceeded",
-  //       message:
-  //         "You have exceeded your daily request limit. Please try again tomorrow.",
-  //       remainingRequests: 0,
-  //       resetTime: endOfDay.toISOString(),
-  //     }),
-  //     {
-  //       status: 429,
-  //       headers: {
-  //         "Content-Type": "application/json",
-  //         "X-Rate-Limit-Limit": "5",
-  //         "X-Rate-Limit-Remaining": "0",
-  //         "X-Rate-Limit-Reset": endOfDay.toISOString(),
-  //       },
-  //     },
-  //   );
-  // }
-
-  // Increment request count (only if not admin to avoid unnecessary Redis calls)
-  // if (!isAdmin) {
-  //   const incrementSpan = trace.span({
-  //     name: "increment-request-count",
-  //     input: {
-  //       userId: session.user.id,
-  //     },
-  //   });
-
-  //   const newCount = await incrementRequestCount(session.user.id);
-
-  //   incrementSpan.end({
-  //     output: {
-  //       newCount,
-  //     },
-  //   });
-  // }
 
   const body = (await request.json()) as {
     messages: Array<Message>;
@@ -175,6 +43,9 @@ export async function POST(request: Request) {
   return createDataStreamResponse({
     execute: async (dataStream) => {
       const { messages, chatId, isNewChat = false } = body;
+
+      // Collect annotations in-memory
+      const annotations: SerializableMessageAnnotation[] = [];
 
       // Create a new chat if isNewChat is true
       let newChatId: string | null = null;
@@ -245,18 +116,46 @@ export async function POST(request: Request) {
             langfuseTraceId: trace.id,
           },
         },
-        onFinish: null, // We'll handle persistence later
-        writeMessageAnnotation: (annotation) => {
-          dataStream.writeMessageAnnotation({
-            type: annotation.type,
-            action: {
-              type: annotation.action.type,
-              title: annotation.action.title,
-              reasoning: annotation.action.reasoning,
-              ...(annotation.action.type === "search" && { query: annotation.action.query }),
-              ...(annotation.action.type === "scrape" && { urls: annotation.action.urls }),
-            }
+        onFinish: (finishResult: StreamTextFinishResult) => {
+          // Get the last message (which should be the user's message)
+          const lastMessage = messages[messages.length - 1];
+          if (!lastMessage) {
+            return;
+          }
+
+          // Create a new assistant message with the result and annotations
+          const assistantMessage: Message = {
+            id: crypto.randomUUID(),
+            role: "assistant",
+            content: finishResult.text,
+            parts: [{ type: "text", text: finishResult.text }],
+            annotations: annotations,
+          };
+
+          // Add the assistant message to the messages array
+          const updatedMessages = [...messages, assistantMessage];
+
+          // Upsert the chat with updated messages (fire and forget)
+          upsertChat({
+            userId: session.user.id,
+            chatId: currentChatId,
+            title: messages[0]?.content
+              ? typeof messages[0].content === "string"
+                ? messages[0].content.slice(0, 50) +
+                  (messages[0].content.length > 50 ? "..." : "")
+                : "New Chat"
+              : "New Chat",
+            messages: updatedMessages,
+          }).catch((error) => {
+            console.error("Failed to persist chat:", error);
           });
+        },
+        writeMessageAnnotation: (annotation: OurMessageAnnotation) => {
+          // Convert to serializable format and save in-memory
+          const serializedAnnotation = serializeAnnotation(annotation);
+          annotations.push(serializedAnnotation);
+          // Send it to the client
+          dataStream.writeMessageAnnotation(serializedAnnotation);
         },
       });
 

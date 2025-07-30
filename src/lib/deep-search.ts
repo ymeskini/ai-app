@@ -5,12 +5,13 @@ import {
 } from "ai";
 import { runAgentLoop } from "~/lib/run-agent-loop";
 import type { OurMessageAnnotation } from "~/lib/get-next-action";
+import type { StreamTextFinishResult } from "~/types/chat";
 
 export const streamFromDeepSearch = async (opts: {
   messages: Message[];
-  onFinish: unknown; // We'll ignore this for now as mentioned in the instructions
+  onFinish: (finishResult: StreamTextFinishResult) => void;
   telemetry: TelemetrySettings;
-  writeMessageAnnotation?: (annotation: OurMessageAnnotation) => void;
+  writeMessageAnnotation: (annotation: OurMessageAnnotation) => void;
 }): Promise<StreamTextResult<never, string>> => {
   // Extract the user query from the last message
   const lastMessage = opts.messages[opts.messages.length - 1];
@@ -20,10 +21,10 @@ export const streamFromDeepSearch = async (opts: {
   const queryString = typeof userQuery === 'string' ? userQuery : 'Please help me';
 
   // Extract langfuseTraceId from telemetry metadata
-  const langfuseTraceId = opts.telemetry?.metadata?.langfuseTraceId as string | undefined;
+  const langfuseTraceId = opts.telemetry.metadata?.langfuseTraceId as string;
 
   // Run the agent loop and return the result - now passing full message history
-  return await runAgentLoop(queryString, opts.messages, 10, opts.writeMessageAnnotation, langfuseTraceId);
+  return await runAgentLoop(queryString, opts.messages, 10, opts.writeMessageAnnotation, langfuseTraceId, opts.onFinish);
 };
 
 export async function askDeepSearch(messages: Message[]) {
@@ -35,6 +36,10 @@ export async function askDeepSearch(messages: Message[]) {
     },
     telemetry: {
       isEnabled: false,
+    },
+    writeMessageAnnotation: () => {
+      // No-op for evaluation purposes
+      return;
     },
   });
 

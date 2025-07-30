@@ -54,6 +54,8 @@ export default async function HomePage({
     // because parts are always present, and the AI SDK will use the parts
     // to construct the content
     content: "",
+    // Include annotations if they exist
+    annotations: msg.annotations as Message["annotations"],
   })) ?? [];
 
   // Handle authentication errors
