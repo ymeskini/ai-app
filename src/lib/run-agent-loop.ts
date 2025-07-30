@@ -1,7 +1,7 @@
 import type { StreamTextResult } from "ai";
 import { searchSerper } from "~/serper";
 import { bulkCrawlWebsitesWithJina, type CrawlResponse } from "~/lib/scraper";
-import { getNextAction } from "~/lib/get-next-action";
+import { getNextAction, type OurMessageAnnotation } from "~/lib/get-next-action";
 import { answerQuestion } from "~/lib/answer-question";
 import { SystemContext, type QueryResult, type QueryResultSearchResult } from "~/lib/system-context";
 import { env } from "~/env";
@@ -68,7 +68,8 @@ export const scrapeUrl = async (urls: string[]) => {
  */
 export const runAgentLoop = async (
   userQuery: string,
-  maxSteps = 10
+  maxSteps = 10,
+  writeMessageAnnotation?: (annotation: OurMessageAnnotation) => void
 ): Promise<StreamTextResult<never, string>> => {
   // A persistent container for the state of our system
   const ctx = new SystemContext();
@@ -77,6 +78,14 @@ export const runAgentLoop = async (
   while (ctx.getStep() < maxSteps) {
     // We choose the next action based on the state of our system
     const nextAction = await getNextAction(ctx, userQuery);
+
+    // Send annotation about the action we chose
+    if (writeMessageAnnotation) {
+      writeMessageAnnotation({
+        type: "NEW_ACTION",
+        action: nextAction,
+      });
+    }
 
     // We execute the action and update the state of our system
     if (nextAction.type === "search") {

@@ -7,21 +7,41 @@ import type { SystemContext } from "~/lib/system-context";
 export interface SearchAction {
   type: "search";
   query: string;
+  title: string;
+  reasoning: string;
 }
 
 export interface ScrapeAction {
   type: "scrape";
   urls: string[];
+  title: string;
+  reasoning: string;
 }
 
 export interface AnswerAction {
   type: "answer";
+  title: string;
+  reasoning: string;
 }
 
 export type Action = SearchAction | ScrapeAction | AnswerAction;
 
+// Message annotation type for progress tracking
+export type OurMessageAnnotation = {
+  type: "NEW_ACTION";
+  action: Action;
+};
+
 // Zod schema for structured output
 export const actionSchema = z.object({
+  title: z
+    .string()
+    .describe(
+      "The title of the action, to be displayed in the UI. Be extremely concise. 'Searching Saka's injury history', 'Checking HMRC industrial action', 'Comparing toaster ovens'",
+    ),
+  reasoning: z
+    .string()
+    .describe("The reason you chose this step."),
   type: z
     .enum(["search", "scrape", "answer"])
     .describe(
@@ -112,6 +132,15 @@ Provide your decision with the appropriate parameters.
 
   // Type assertion to ensure we return the correct type
   const action = result.object as Action;
+
+  // Validate that required fields are present for all actions
+  if (!action.title) {
+    throw new Error("Title is required for all actions");
+  }
+
+  if (!action.reasoning) {
+    throw new Error("Reasoning is required for all actions");
+  }
 
   // Validate that required fields are present based on action type
   if (action.type === "search" && !action.query) {

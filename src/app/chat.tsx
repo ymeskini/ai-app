@@ -10,6 +10,7 @@ import { ChatMessage } from "~/components/chat-message";
 import { SignInModal } from "~/components/sign-in-modal";
 import { ErrorMessage } from "~/components/error-message";
 import { isNewChatCreated } from "~/lib/chat-utils";
+import type { OurMessageAnnotation } from "~/lib/get-next-action";
 
 interface ChatProps {
   userName: string;
@@ -124,6 +125,17 @@ export const ChatPage = ({ userName, isAuthenticated, chatId, isNewChat, initial
                     parts={message.parts}
                     role={message.role}
                     userName={userName}
+                    annotations={(() => {
+                      if (!message.annotations) return undefined;
+                      return message.annotations
+                        .filter((ann) => {
+                          return ann != null &&
+                                 typeof ann === 'object' &&
+                                 'type' in ann &&
+                                 ann.type === 'NEW_ACTION';
+                        })
+                        .map((ann) => ann as unknown as OurMessageAnnotation);
+                    })()}
                   />
                 );
               })}

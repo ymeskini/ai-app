@@ -246,6 +246,18 @@ export async function POST(request: Request) {
           },
         },
         onFinish: null, // We'll handle persistence later
+        writeMessageAnnotation: (annotation) => {
+          dataStream.writeMessageAnnotation({
+            type: annotation.type,
+            action: {
+              type: annotation.action.type,
+              title: annotation.action.title,
+              reasoning: annotation.action.reasoning,
+              ...(annotation.action.type === "search" && { query: annotation.action.query }),
+              ...(annotation.action.type === "scrape" && { urls: annotation.action.urls }),
+            }
+          });
+        },
       });
 
       // Once the result is ready, merge it into the data stream
