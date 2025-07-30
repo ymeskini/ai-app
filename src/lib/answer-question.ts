@@ -5,9 +5,9 @@ import type { SystemContext } from "~/lib/system-context";
 export const answerQuestion = (
   context: SystemContext,
   userQuery: string,
-  options: { isFinal?: boolean } = {}
+  options: { isFinal?: boolean; langfuseTraceId?: string } = {}
 ) => {
-  const { isFinal = false } = options;
+  const { isFinal = false, langfuseTraceId } = options;
 
   const systemPrompt = `
 You are a helpful AI assistant that provides comprehensive and accurate answers based on web search and scraping data.
@@ -66,5 +66,14 @@ Provide a comprehensive answer to the user's question based on the information a
   return streamText({
     model,
     prompt: systemPrompt,
+    ...(langfuseTraceId && {
+      experimental_telemetry: {
+        isEnabled: true,
+        functionId: isFinal ? "answer-question-final" : "answer-question",
+        metadata: {
+          langfuseTraceId: langfuseTraceId,
+        },
+      },
+    }),
   });
 };

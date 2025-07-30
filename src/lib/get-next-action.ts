@@ -67,10 +67,20 @@ export const actionSchema = z.object({
 export const getNextAction = async (
   context: SystemContext,
   userQuery: string,
+  langfuseTraceId?: string,
 ): Promise<Action> => {
   const result = await generateObject({
     model,
     schema: actionSchema,
+    ...(langfuseTraceId && {
+      experimental_telemetry: {
+        isEnabled: true,
+        functionId: "get-next-action",
+        metadata: {
+          langfuseTraceId: langfuseTraceId,
+        },
+      },
+    }),
     prompt: `
 You are a helpful AI assistant that can search the web, scrape URLs, or answer the user's question.
 

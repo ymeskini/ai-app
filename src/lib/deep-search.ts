@@ -19,8 +19,11 @@ export const streamFromDeepSearch = async (opts: {
   // Convert content to string if needed - for now just handle string content
   const queryString = typeof userQuery === 'string' ? userQuery : 'Please help me';
 
+  // Extract langfuseTraceId from telemetry metadata
+  const langfuseTraceId = opts.telemetry?.metadata?.langfuseTraceId as string | undefined;
+
   // Run the agent loop and return the result
-  return await runAgentLoop(queryString, 10, opts.writeMessageAnnotation);
+  return await runAgentLoop(queryString, 10, opts.writeMessageAnnotation, langfuseTraceId);
 };
 
 export async function askDeepSearch(messages: Message[]) {

@@ -69,7 +69,8 @@ export const scrapeUrl = async (urls: string[]) => {
 export const runAgentLoop = async (
   userQuery: string,
   maxSteps = 10,
-  writeMessageAnnotation?: (annotation: OurMessageAnnotation) => void
+  writeMessageAnnotation?: (annotation: OurMessageAnnotation) => void,
+  langfuseTraceId?: string
 ): Promise<StreamTextResult<never, string>> => {
   // A persistent container for the state of our system
   const ctx = new SystemContext();
@@ -77,7 +78,7 @@ export const runAgentLoop = async (
   // A loop that continues until we have an answer or we've taken maxSteps actions
   while (ctx.getStep() < maxSteps) {
     // We choose the next action based on the state of our system
-    const nextAction = await getNextAction(ctx, userQuery);
+    const nextAction = await getNextAction(ctx, userQuery, langfuseTraceId);
 
     // Send annotation about the action we chose
     if (writeMessageAnnotation) {
@@ -131,7 +132,7 @@ export const runAgentLoop = async (
       }
 
     } else if (nextAction.type === "answer") {
-      return answerQuestion(ctx, userQuery);
+      return answerQuestion(ctx, userQuery, { langfuseTraceId });
     }
 
     // We increment the step counter
@@ -140,5 +141,5 @@ export const runAgentLoop = async (
 
   // If we've taken maxSteps actions and still don't have an answer,
   // we ask the LLM to give its best attempt at an answer
-  return answerQuestion(ctx, userQuery, { isFinal: true });
+  return answerQuestion(ctx, userQuery, { isFinal: true, langfuseTraceId });
 };
