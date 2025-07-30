@@ -1,7 +1,8 @@
-import { generateObject } from "ai";
+import { generateObject, type Message } from "ai";
 import { z } from "zod";
 import { model } from "~/lib/model";
 import type { SystemContext } from "~/lib/system-context";
+import { formatMessageHistory } from "~/lib/format-message-history";
 
 // Action types
 export interface SearchAction {
@@ -67,6 +68,7 @@ export const actionSchema = z.object({
 export const getNextAction = async (
   context: SystemContext,
   userQuery: string,
+  messages: Message[],
   langfuseTraceId?: string,
 ): Promise<Action> => {
   const result = await generateObject({
@@ -119,7 +121,9 @@ Choose 4-6 URLs minimum per scrape action:
 
 ## CONTEXT ANALYSIS
 
-User's Question: "${userQuery}"
+${formatMessageHistory(messages)}
+
+Current User's Question: "${userQuery}"
 
 Query History:
 ${context.getQueryHistory()}

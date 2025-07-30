@@ -1,10 +1,12 @@
-import { streamText } from "ai";
+import { streamText, type Message } from "ai";
 import { model } from "~/lib/model";
 import type { SystemContext } from "~/lib/system-context";
+import { formatMessageHistory } from "~/lib/format-message-history";
 
 export const answerQuestion = (
   context: SystemContext,
   userQuery: string,
+  messages: Message[],
   options: { isFinal?: boolean; langfuseTraceId?: string } = {}
 ) => {
   const { isFinal = false, langfuseTraceId } = options;
@@ -46,7 +48,11 @@ You must format all links as inline markdown links using the exact syntax: \`[li
 ✅ **Correct:** According to the [latest research from Stanford](https://cs229.stanford.edu/), machine learning algorithms continue to evolve.
 ❌ **Incorrect:** According to the latest research from Stanford[1], machine learning algorithms continue to evolve.
 
-## USER'S QUESTION
+## CONVERSATION CONTEXT
+
+${formatMessageHistory(messages)}
+
+## CURRENT USER'S QUESTION
 
 "${userQuery}"
 
