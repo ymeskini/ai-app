@@ -71,8 +71,6 @@ export const actionSchema = z.union([
 
 However, `z.union` is often a trap when working with LLMs.
 
-<Video resourceId="zuniondangers-kwXDch5P.mp4" />
-
 Under the hood, Zod is translated into JSON schema before being passed to the LLM. `z.union` is translated into a `oneOf` array.
 
 ```json

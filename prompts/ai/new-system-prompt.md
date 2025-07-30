@@ -78,8 +78,6 @@ At this point we should consider that JSON is not the best way to pass informati
 
 We want to optimize our system prompt to be readable by the LLM, and JSON contains a lot of unnecessary tokens, like `{`, `"`, and `}`.
 
-<Video resourceId="systemcontexttostringmethods-4q4bq1gd.mp4" />
-
 Inside our `SystemContext` class, we should add methods for the `queries` and `scrapes` arrays to turn them into LLM-readable strings.
 
 ```ts
