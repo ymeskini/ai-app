@@ -28,7 +28,7 @@ export interface AnswerAction {
 export type Action = SearchAction | ScrapeAction | AnswerAction;
 
 // Message annotation type for progress tracking
-export type OurMessageAnnotation = 
+export type OurMessageAnnotation =
   | {
       type: "NEW_ACTION";
       action: Action;
@@ -47,28 +47,20 @@ export const actionSchema = z.object({
     .describe(
       "The title of the action, to be displayed in the UI. Be extremely concise. 'Searching Saka's injury history', 'Checking HMRC industrial action', 'Comparing toaster ovens'",
     ),
-  reasoning: z
-    .string()
-    .describe("The reason you chose this step."),
-  type: z
-    .enum(["search", "scrape", "answer"])
-    .describe(
-      `The type of action to take.
+  reasoning: z.string().describe("The reason you chose this step."),
+  type: z.enum(["search", "scrape", "answer"]).describe(
+    `The type of action to take.
       - 'search': Search the web for more information.
       - 'scrape': Scrape a URL.
       - 'answer': Answer the user's question and complete the loop.`,
-    ),
+  ),
   query: z
     .string()
-    .describe(
-      "The query to search for. Required if type is 'search'.",
-    )
+    .describe("The query to search for. Required if type is 'search'.")
     .optional(),
   urls: z
     .array(z.string())
-    .describe(
-      "The URLs to scrape. Required if type is 'scrape'.",
-    )
+    .describe("The URLs to scrape. Required if type is 'scrape'.")
     .optional(),
 });
 

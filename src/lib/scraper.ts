@@ -3,10 +3,7 @@ import { setTimeout } from "node:timers/promises";
 import robotsParser from "robots-parser";
 import TurndownService from "turndown";
 import { cacheWithRedis } from "~/server/redis/redis";
-import {
-  jinaCrawlWebsite,
-  jinaBulkCrawlWebsites
-} from "./jina-scraper";
+import { jinaCrawlWebsite, jinaBulkCrawlWebsites } from "./jina-scraper";
 
 // Type declaration for TurndownService
 interface TurndownServiceType {
@@ -27,9 +24,7 @@ export interface CrawlErrorResponse {
   error: string;
 }
 
-export type CrawlResponse =
-  | CrawlSuccessResponse
-  | CrawlErrorResponse;
+export type CrawlResponse = CrawlSuccessResponse | CrawlErrorResponse;
 
 export interface BulkCrawlSuccessResponse {
   success: true;
@@ -56,8 +51,7 @@ export interface CrawlOptions {
   maxRetries?: number;
 }
 
-export interface BulkCrawlOptions
-  extends CrawlOptions {
+export interface BulkCrawlOptions extends CrawlOptions {
   urls: string[];
 }
 
@@ -74,9 +68,7 @@ const turndownService = new (TurndownService as unknown as new (options: {
 
 const extractArticleText = (html: string): string => {
   const $ = cheerio.load(html);
-  $(
-    "script, style, nav, header, footer, iframe, noscript",
-  ).remove();
+  $("script, style, nav, header, footer, iframe, noscript").remove();
 
   const articleSelectors = [
     "article",
@@ -92,25 +84,19 @@ const extractArticleText = (html: string): string => {
   for (const selector of articleSelectors) {
     const element = $(selector);
     if (element.length) {
-      content = turndownService.turndown(
-        element.html() ?? "",
-      );
+      content = turndownService.turndown(element.html() ?? "");
       break;
     }
   }
 
   if (!content) {
-    content = turndownService.turndown(
-      $("body").html() ?? "",
-    );
+    content = turndownService.turndown($("body").html() ?? "");
   }
 
   return content.trim();
 };
 
-const checkRobotsTxt = async (
-  url: string,
-): Promise<boolean> => {
+const checkRobotsTxt = async (url: string): Promise<boolean> => {
   try {
     const parsedUrl = new URL(url);
     const robotsUrl = `${parsedUrl.protocol}//${parsedUrl.host}/robots.txt`;
@@ -125,9 +111,7 @@ const checkRobotsTxt = async (
     const robots = robotsParser(robotsUrl, robotsTxt);
 
     // Use a common crawler user agent
-    return (
-      robots.isAllowed(url, "LinkedInBot") ?? true
-    );
+    return robots.isAllowed(url, "LinkedInBot") ?? true;
   } catch {
     // If there's an error checking robots.txt, assume crawling is allowed
     return true;
@@ -136,11 +120,8 @@ const checkRobotsTxt = async (
 
 export const bulkCrawlWebsites = cacheWithRedis(
   "bulkCrawlWebsites",
-  async (
-    options: BulkCrawlOptions,
-  ): Promise<BulkCrawlResponse> => {
-    const { urls, maxRetries = DEFAULT_MAX_RETRIES } =
-      options;
+  async (options: BulkCrawlOptions): Promise<BulkCrawlResponse> => {
+    const { urls, maxRetries = DEFAULT_MAX_RETRIES } = options;
 
     const results = await Promise.all(
       urls.map(async (url) => ({
@@ -149,17 +130,12 @@ export const bulkCrawlWebsites = cacheWithRedis(
       })),
     );
 
-    const allSuccessful = results.every(
-      (r) => r.result.success,
-    );
+    const allSuccessful = results.every((r) => r.result.success);
 
     if (!allSuccessful) {
       const errors = results
         .filter((r) => !r.result.success)
-        .map(
-          (r) =>
-            `${r.url}: ${(r.result as CrawlErrorResponse).error}`,
-        )
+        .map((r) => `${r.url}: ${(r.result as CrawlErrorResponse).error}`)
         .join("\n");
 
       return {
@@ -178,11 +154,8 @@ export const bulkCrawlWebsites = cacheWithRedis(
 
 export const crawlWebsite = cacheWithRedis(
   "crawlWebsite",
-  async (
-    options: CrawlOptions & { url: string },
-  ): Promise<CrawlResponse> => {
-    const { url, maxRetries = DEFAULT_MAX_RETRIES } =
-      options;
+  async (options: CrawlOptions & { url: string }): Promise<CrawlResponse> => {
+    const { url, maxRetries = DEFAULT_MAX_RETRIES } = options;
 
     // Check robots.txt before attempting to crawl
     const isAllowed = await checkRobotsTxt(url);

@@ -3,7 +3,11 @@
 import { useState } from "react";
 import Link from "next/link";
 import { MoreHorizontal, Trash2 } from "lucide-react";
-import { SidebarMenuButton, SidebarMenuItem, SidebarMenuAction } from "~/components/ui/sidebar";
+import {
+  SidebarMenuButton,
+  SidebarMenuItem,
+  SidebarMenuAction,
+} from "~/components/ui/sidebar";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -39,22 +43,22 @@ export function ChatItem({ chat, isActive }: ChatItemProps) {
     setIsDeleting(true);
     try {
       const response = await fetch(`/api/chat/${chat.id}`, {
-        method: 'DELETE',
+        method: "DELETE",
       });
 
       if (!response.ok) {
-        throw new Error('Failed to delete chat');
+        throw new Error("Failed to delete chat");
       }
 
       // If we're deleting the current chat, redirect to home
       if (isActive) {
-        router.push('/');
+        router.push("/");
       } else {
         // Otherwise just refresh the page to update the sidebar
         router.refresh();
       }
     } catch (error) {
-      console.error('Error deleting chat:', error);
+      console.error("Error deleting chat:", error);
       // You might want to show a toast notification here
     } finally {
       setIsDeleting(false);
@@ -65,23 +69,33 @@ export function ChatItem({ chat, isActive }: ChatItemProps) {
   return (
     <>
       <SidebarMenuItem>
-        <SidebarMenuButton asChild isActive={isActive} className="text-gray-700 hover:text-gray-900 hover:bg-gray-50 data-[active=true]:bg-gray-100 data-[active=true]:text-gray-900">
+        <SidebarMenuButton
+          asChild
+          isActive={isActive}
+          className="text-gray-700 hover:bg-gray-50 hover:text-gray-900 data-[active=true]:bg-gray-100 data-[active=true]:text-gray-900"
+        >
           <Link href={`/?id=${chat.id}`}>
             <span className="truncate">{chat.title}</span>
           </Link>
         </SidebarMenuButton>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <SidebarMenuAction showOnHover className="text-gray-500 hover:text-gray-700 hover:bg-gray-100">
+            <SidebarMenuAction
+              showOnHover
+              className="text-gray-500 hover:bg-gray-100 hover:text-gray-700"
+            >
               <MoreHorizontal className="h-4 w-4" />
               <span className="sr-only">More</span>
             </SidebarMenuAction>
           </DropdownMenuTrigger>
-          <DropdownMenuContent className="min-w-[8rem] bg-white border-gray-200" align="start">
+          <DropdownMenuContent
+            className="min-w-[8rem] border-gray-200 bg-white"
+            align="start"
+          >
             <DropdownMenuItem
               variant="destructive"
               onClick={() => setIsDeleteDialogOpen(true)}
-              className="text-red-600 hover:text-red-700 hover:bg-red-50"
+              className="text-red-600 hover:bg-red-50 hover:text-red-700"
             >
               <Trash2 className="h-4 w-4" />
               Delete
@@ -90,22 +104,31 @@ export function ChatItem({ chat, isActive }: ChatItemProps) {
         </DropdownMenu>
       </SidebarMenuItem>
 
-      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-        <AlertDialogContent className="bg-white border-gray-200">
+      <AlertDialog
+        open={isDeleteDialogOpen}
+        onOpenChange={setIsDeleteDialogOpen}
+      >
+        <AlertDialogContent className="border-gray-200 bg-white">
           <AlertDialogHeader>
-            <AlertDialogTitle className="text-gray-900">Delete Chat</AlertDialogTitle>
+            <AlertDialogTitle className="text-gray-900">
+              Delete Chat
+            </AlertDialogTitle>
             <AlertDialogDescription className="text-gray-600">
-              Are you sure you want to delete &ldquo;{chat.title}&rdquo;? This action cannot be undone.
+              Are you sure you want to delete &ldquo;{chat.title}&rdquo;? This
+              action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={isDeleting} className="text-gray-700 border-gray-300 hover:bg-gray-50">
+            <AlertDialogCancel
+              disabled={isDeleting}
+              className="border-gray-300 text-gray-700 hover:bg-gray-50"
+            >
               Cancel
             </AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDelete}
               disabled={isDeleting}
-              className="bg-red-600 hover:bg-red-700 text-white"
+              className="bg-red-600 text-white hover:bg-red-700"
             >
               {isDeleting ? "Deleting..." : "Delete"}
             </AlertDialogAction>

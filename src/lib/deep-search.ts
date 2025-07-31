@@ -18,13 +18,21 @@ export const streamFromDeepSearch = async (opts: {
   const userQuery = lastMessage?.content ?? "";
 
   // Convert content to string if needed - for now just handle string content
-  const queryString = typeof userQuery === 'string' ? userQuery : 'Please help me';
+  const queryString =
+    typeof userQuery === "string" ? userQuery : "Please help me";
 
   // Extract langfuseTraceId from telemetry metadata
   const langfuseTraceId = opts.telemetry.metadata?.langfuseTraceId as string;
 
   // Run the agent loop and return the result - now passing full message history
-  return await runAgentLoop(queryString, opts.messages, 10, opts.writeMessageAnnotation, langfuseTraceId, opts.onFinish);
+  return await runAgentLoop(
+    queryString,
+    opts.messages,
+    10,
+    opts.writeMessageAnnotation,
+    langfuseTraceId,
+    opts.onFinish,
+  );
 };
 
 export async function askDeepSearch(messages: Message[]) {

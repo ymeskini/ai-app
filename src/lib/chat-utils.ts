@@ -1,6 +1,4 @@
-export function isNewChatCreated(
-  data: unknown,
-): data is {
+export function isNewChatCreated(data: unknown): data is {
   type: "NEW_CHAT_CREATED";
   chatId: string;
 } {

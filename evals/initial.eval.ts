@@ -45,14 +45,10 @@ const checkFactuality = async (opts: {
       (E) The answers differ, but these differences don't matter from the perspective of factuality.
     `,
     schema: z.object({
-      answer: z
-        .enum(["A", "B", "C", "D", "E"])
-        .describe("Your selection."),
+      answer: z.enum(["A", "B", "C", "D", "E"]).describe("Your selection."),
       rationale: z
         .string()
-        .describe(
-          "Why you chose this answer. Be very detailed.",
-        ),
+        .describe("Why you chose this answer. Be very detailed."),
     }),
   });
 
@@ -76,15 +72,11 @@ const checkFactuality = async (opts: {
 };
 
 // This is the scorer that can be passed into the scorers in Evalite
-const Factuality = createScorer<
-  Message[],
-  string,
-  string
->({
+const Factuality = createScorer<Message[], string, string>({
   name: "Factuality",
   scorer: async ({ input, expected, output }) => {
     // Extract the question from the messages
-    const question = input.find(msg => msg.role === "user")?.content ?? "";
+    const question = input.find((msg) => msg.role === "user")?.content ?? "";
 
     return checkFactuality({
       question,
@@ -95,9 +87,7 @@ const Factuality = createScorer<
 });
 
 evalite("Arsenal Transfer Activity Eval", {
-  data: async (): Promise<
-    { input: Message[]; expected: string }[]
-  > => {
+  data: async (): Promise<{ input: Message[]; expected: string }[]> => {
     const data = [...devData];
 
     // If CI, add the CI data
@@ -116,8 +106,7 @@ evalite("Arsenal Transfer Activity Eval", {
   scorers: [
     {
       name: "Contains Links",
-      description:
-        "Checks if the output contains any markdown links.",
+      description: "Checks if the output contains any markdown links.",
       scorer: ({ output }) => {
         // Regex to match markdown links: [text](url)
         const markdownLinkRegex = /\[([^\]]+)\]\(([^)]+)\)/;

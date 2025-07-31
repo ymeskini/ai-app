@@ -27,7 +27,7 @@ export interface StreamTextFinishResult {
 /**
  * Type for message annotations that can be serialized to JSON
  */
-export type SerializableMessageAnnotation = 
+export type SerializableMessageAnnotation =
   | {
       type: "NEW_ACTION";
       action: {
@@ -48,7 +48,9 @@ export type SerializableMessageAnnotation =
 /**
  * Convert OurMessageAnnotation to a serializable format
  */
-export function serializeAnnotation(annotation: OurMessageAnnotation): SerializableMessageAnnotation {
+export function serializeAnnotation(
+  annotation: OurMessageAnnotation,
+): SerializableMessageAnnotation {
   if (annotation.type === "NEW_ACTION") {
     return {
       type: annotation.type,
@@ -56,8 +58,12 @@ export function serializeAnnotation(annotation: OurMessageAnnotation): Serializa
         type: annotation.action.type,
         title: annotation.action.title,
         reasoning: annotation.action.reasoning,
-        ...(annotation.action.type === "search" && { query: annotation.action.query }),
-        ...(annotation.action.type === "scrape" && { urls: annotation.action.urls }),
+        ...(annotation.action.type === "search" && {
+          query: annotation.action.query,
+        }),
+        ...(annotation.action.type === "scrape" && {
+          urls: annotation.action.urls,
+        }),
       },
     };
   } else {

@@ -6,7 +6,7 @@ import type { Message } from "ai";
 export const upsertChat = async (opts: {
   userId: string;
   chatId: string;
-  title: string;
+  title?: string;
   messages: Message[];
 }) => {
   const { userId, chatId, title, messages: newMessages } = opts;
@@ -20,12 +20,17 @@ export const upsertChat = async (opts: {
       throw new Error("Chat ID already exists under a different user");
     }
 
+    // Update title if provided
+    if (title) {
+      await db.update(chats).set({ title }).where(eq(chats.id, chatId));
+    }
+
     await db.delete(messages).where(eq(messages.chatId, chatId));
   } else {
     await db.insert(chats).values({
       id: chatId,
       userId,
-      title,
+      title: title ?? "New Chat",
     });
   }
 
@@ -80,9 +85,9 @@ export const deleteChat = async (chatId: string, userId: string) => {
   await db.delete(messages).where(eq(messages.chatId, chatId));
 
   // Then delete the chat itself, but only if it belongs to the user
-  const result = await db.delete(chats).where(
-    and(eq(chats.id, chatId), eq(chats.userId, userId))
-  );
+  const result = await db
+    .delete(chats)
+    .where(and(eq(chats.id, chatId), eq(chats.userId, userId)));
 
   return result;
 };

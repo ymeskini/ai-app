@@ -79,7 +79,7 @@ const fetchFromSerper = cacheWithRedis(
       throw new Error(await response.text());
     }
 
-    const json = await response.json() as SerperTool.SearchResult;
+    const json = (await response.json()) as SerperTool.SearchResult;
 
     return json;
   },

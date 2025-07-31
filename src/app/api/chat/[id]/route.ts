@@ -5,7 +5,7 @@ import { deleteChat } from "~/server/db/chat";
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const session = await auth();
@@ -17,7 +17,10 @@ export async function DELETE(
     const { id } = await params;
 
     if (!id) {
-      return NextResponse.json({ error: "Chat ID is required" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Chat ID is required" },
+        { status: 400 },
+      );
     }
 
     await deleteChat(id, session.user.id);
@@ -27,7 +30,7 @@ export async function DELETE(
     console.error("Error deleting chat:", error);
     return NextResponse.json(
       { error: "Failed to delete chat" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

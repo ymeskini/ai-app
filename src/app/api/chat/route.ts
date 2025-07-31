@@ -6,6 +6,7 @@ import { auth } from "~/server/auth";
 
 import { upsertChat } from "~/server/db/chat";
 import { streamFromDeepSearch } from "~/lib/deep-search";
+import { generateChatTitle } from "~/lib/generate-chat-title";
 import type { OurMessageAnnotation } from "~/lib/get-next-action";
 import type {
   StreamTextFinishResult,
@@ -19,7 +20,6 @@ const langfuse = new Langfuse({
 
 export const maxDuration = 60;
 
-
 export async function POST(request: Request) {
   const session = await auth();
 
@@ -32,7 +32,6 @@ export async function POST(request: Request) {
     name: "chat",
     userId: session.user.id,
   });
-
 
   const body = (await request.json()) as {
     messages: Array<Message>;
@@ -51,35 +50,30 @@ export async function POST(request: Request) {
       let newChatId: string | null = null;
       let currentChatId = chatId;
 
+      // Set up title generation promise
+      let titlePromise: Promise<string>;
       if (isNewChat) {
-        // Generate a new chat ID (using the provided chatId)
+        // Generate title in parallel with streaming
+        titlePromise = generateChatTitle(messages);
+
         newChatId = chatId;
         currentChatId = chatId;
-
-        // Create the chat with the user's first message
-        // Use the first message content as the title (truncated if too long)
-        const firstMessage = messages[0];
-        const title = firstMessage?.content
-          ? typeof firstMessage.content === "string"
-            ? firstMessage.content.slice(0, 50) +
-              (firstMessage.content.length > 50 ? "..." : "")
-            : "New Chat"
-          : "New Chat";
 
         const createChatSpan = trace.span({
           name: "create-new-chat",
           input: {
             userId: session.user.id,
             chatId: chatId,
-            title,
+            title: "Generating...",
             messageCount: messages.length,
           },
         });
 
+        // Create the chat with placeholder title
         const result = await upsertChat({
           userId: session.user.id,
           chatId: chatId,
-          title,
+          title: "Generating...",
           messages: messages,
         });
 
@@ -88,6 +82,9 @@ export async function POST(request: Request) {
             chatId: result.id,
           },
         });
+      } else {
+        // For existing chats, resolve empty string
+        titlePromise = Promise.resolve("");
       }
 
       // Update trace with session ID now that we have the chat ID
@@ -135,20 +132,29 @@ export async function POST(request: Request) {
           // Add the assistant message to the messages array
           const updatedMessages = [...messages, assistantMessage];
 
-          // Upsert the chat with updated messages (fire and forget)
-          upsertChat({
-            userId: session.user.id,
-            chatId: currentChatId,
-            title: messages[0]?.content
-              ? typeof messages[0].content === "string"
-                ? messages[0].content.slice(0, 50) +
-                  (messages[0].content.length > 50 ? "..." : "")
-                : "New Chat"
-              : "New Chat",
-            messages: updatedMessages,
-          }).catch((error) => {
-            console.error("Failed to persist chat:", error);
-          });
+          // Handle title generation and chat update asynchronously (fire and forget)
+          titlePromise
+            .then((title) => {
+              upsertChat({
+                userId: session.user.id,
+                chatId: currentChatId,
+                ...(title ? { title } : {}), // Only save the title if it's not empty
+                messages: updatedMessages,
+              }).catch((error) => {
+                console.error("Failed to persist chat:", error);
+              });
+            })
+            .catch((error) => {
+              console.error("Failed to generate title:", error);
+              // Fallback: save without title update
+              upsertChat({
+                userId: session.user.id,
+                chatId: currentChatId,
+                messages: updatedMessages,
+              }).catch((error) => {
+                console.error("Failed to persist chat:", error);
+              });
+            });
         },
         writeMessageAnnotation: (annotation: OurMessageAnnotation) => {
           // Convert to serializable format and save in-memory

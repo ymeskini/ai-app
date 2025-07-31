@@ -22,15 +22,10 @@ interface RateLimitResult {
 export async function recordRateLimit({
   windowMs,
   keyPrefix = "rate_limit",
-}: Pick<
-  RateLimitConfig,
-  "windowMs" | "keyPrefix"
->): Promise<void> {
+}: Pick<RateLimitConfig, "windowMs" | "keyPrefix">): Promise<void> {
   const now = Date.now();
-  const windowStart =
-    Math.floor(now / windowMs) * windowMs;
+  const windowStart = Math.floor(now / windowMs) * windowMs;
   const key = `${keyPrefix}:${windowStart}`;
-
 
   try {
     const pipeline = redis.pipeline();
@@ -40,16 +35,10 @@ export async function recordRateLimit({
     const results = await pipeline.exec();
 
     if (!results) {
-      throw new Error(
-        "Redis pipeline execution failed",
-      );
+      throw new Error("Redis pipeline execution failed");
     }
-
   } catch (error) {
-    console.error(
-      "Rate limit recording failed:",
-      error,
-    );
+    console.error("Rate limit recording failed:", error);
     throw error;
   }
 }
@@ -65,15 +54,12 @@ export async function checkGlobalRateLimit({
   maxRetries = 3,
 }: RateLimitConfig): Promise<RateLimitResult> {
   const now = Date.now();
-  const windowStart =
-    Math.floor(now / windowMs) * windowMs;
+  const windowStart = Math.floor(now / windowMs) * windowMs;
   const key = `${keyPrefix}:${windowStart}`;
 
   try {
     const currentCount = await redis.get(key);
-    const count = currentCount
-      ? parseInt(currentCount, 10)
-      : 0;
+    const count = currentCount ? parseInt(currentCount, 10) : 0;
 
     const allowed = count < maxRequests;
     const remaining = Math.max(0, maxRequests - count);
@@ -85,7 +71,9 @@ export async function checkGlobalRateLimit({
       if (!allowed) {
         const waitTime = resetTime - Date.now();
         if (waitTime > 0) {
-          console.log(`Rate limit exceeded. Waiting ${waitTime}ms for window to reset...`);
+          console.log(
+            `Rate limit exceeded. Waiting ${waitTime}ms for window to reset...`,
+          );
           await setTimeout(waitTime);
         }
 
@@ -99,7 +87,9 @@ export async function checkGlobalRateLimit({
 
         if (!retryResult.allowed) {
           if (retryCount >= maxRetries) {
-            console.log(`Max retries (${maxRetries}) exceeded. Failing request.`);
+            console.log(
+              `Max retries (${maxRetries}) exceeded. Failing request.`,
+            );
             return false;
           }
           retryCount++;

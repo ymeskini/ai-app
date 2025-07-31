@@ -44,29 +44,30 @@ export default async function HomePage({
   const currentChat = id && userId ? await getChat(id, userId) : null;
 
   // Convert database messages to the format expected by useChat
-  const initialMessages = currentChat?.messages?.map((msg) => ({
-    id: msg.id,
-    // msg.role is typed as string, so we need to cast it to the correct type
-    role: msg.role as "user" | "assistant",
-    // msg.content contains the parts data from the database
-    parts: msg.content as Message["parts"],
-    // content is not persisted, so we can safely pass an empty string,
-    // because parts are always present, and the AI SDK will use the parts
-    // to construct the content
-    content: "",
-    // Include annotations if they exist
-    annotations: msg.annotations as Message["annotations"],
-  })) ?? [];
+  const initialMessages =
+    currentChat?.messages?.map((msg) => ({
+      id: msg.id,
+      // msg.role is typed as string, so we need to cast it to the correct type
+      role: msg.role as "user" | "assistant",
+      // msg.content contains the parts data from the database
+      parts: msg.content as Message["parts"],
+      // content is not persisted, so we can safely pass an empty string,
+      // because parts are always present, and the AI SDK will use the parts
+      // to construct the content
+      content: "",
+      // Include annotations if they exist
+      annotations: msg.annotations as Message["annotations"],
+    })) ?? [];
 
   // Handle authentication errors
   const getErrorMessage = (errorType: string | undefined) => {
     switch (errorType) {
-      case 'AccessDenied':
-        return 'Access denied. Only authorized users can sign in with Discord.';
-      case 'OAuthSignin':
-        return 'Error occurred during Discord sign-in. Please try again.';
-      case 'OAuthCallback':
-        return 'Authentication failed. Please try signing in again.';
+      case "AccessDenied":
+        return "Access denied. Only authorized users can sign in with Discord.";
+      case "OAuthSignin":
+        return "Error occurred during Discord sign-in. Please try again.";
+      case "OAuthCallback":
+        return "Authentication failed. Please try signing in again.";
       default:
         return null;
     }
@@ -84,7 +85,12 @@ export default async function HomePage({
                 Your Chats
               </SidebarGroupLabel>
               {isAuthenticated && (
-                <Button variant="ghost" size="icon" className="h-8 w-8 text-gray-600 hover:text-gray-900 hover:bg-gray-100" asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 text-gray-600 hover:bg-gray-100 hover:text-gray-900"
+                  asChild
+                >
                   <Link href="/" title="New Chat">
                     <PlusIcon className="h-5 w-5" />
                   </Link>
@@ -119,7 +125,7 @@ export default async function HomePage({
             </SidebarGroup>
           </SidebarContent>
 
-          <SidebarFooter className="p-4 border-t border-gray-200">
+          <SidebarFooter className="border-t border-gray-200 p-4">
             <AuthButton
               isAuthenticated={isAuthenticated}
               userImage={session?.user?.image}
@@ -127,17 +133,17 @@ export default async function HomePage({
           </SidebarFooter>
         </Sidebar>
 
-        <SidebarInset className="flex-1 bg-white flex flex-col">
-          <div className="flex items-center gap-2 p-4 border-b border-gray-200 flex-shrink-0">
-            <SidebarTrigger className="h-8 w-8 text-gray-600 hover:text-gray-900 hover:bg-gray-100" />
+        <SidebarInset className="flex flex-1 flex-col bg-white">
+          <div className="flex flex-shrink-0 items-center gap-2 border-b border-gray-200 p-4">
+            <SidebarTrigger className="h-8 w-8 text-gray-600 hover:bg-gray-100 hover:text-gray-900" />
             <div className="text-sm font-medium text-gray-900">Chat</div>
           </div>
           {errorMessage && (
-            <div className="border-b border-gray-200 p-4 bg-red-50 flex-shrink-0">
+            <div className="flex-shrink-0 border-b border-gray-200 bg-red-50 p-4">
               <ErrorMessage message={errorMessage} />
             </div>
           )}
-          <div className="flex-1 min-h-0">
+          <div className="min-h-0 flex-1">
             <ChatPage
               key={chatId}
               userName={userName}

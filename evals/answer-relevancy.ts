@@ -6,12 +6,8 @@ import { z } from "zod";
 import { factualityModel } from "~/lib/model";
 
 // Prompt for breaking down the model's answer into statements
-function generateEvaluationStatementsPrompt({
-  output,
-}: {
-  output: string;
-}) {
-    return `Given the text, break it down into meaningful statements while preserving context and relationships.
+function generateEvaluationStatementsPrompt({ output }: { output: string }) {
+  return `Given the text, break it down into meaningful statements while preserving context and relationships.
             Don't split too aggressively.
 
             Split compound statements particularly when they:
@@ -186,7 +182,7 @@ function generateEvaluatePrompt({
   Number of statements: ${statements.length === 0 ? "1" : statements.length}
 
   Statements:
-  ${statements.map((stmt, i) => `${i + 1}. ${stmt}`).join('\n  ')}
+  ${statements.map((stmt, i) => `${i + 1}. ${stmt}`).join("\n  ")}
 
   JSON:
   `;
@@ -203,7 +199,9 @@ const checkAnswerRelevancy = async (opts: {
       output: opts.submission,
     }),
     schema: z.object({
-      statements: z.array(z.string()).describe("List of statements extracted from the text."),
+      statements: z
+        .array(z.string())
+        .describe("List of statements extracted from the text."),
     }),
   });
 
@@ -228,10 +226,16 @@ const checkAnswerRelevancy = async (opts: {
       statements: statementsResult.statements,
     }),
     schema: z.object({
-      verdicts: z.array(z.object({
-        verdict: z.enum(["yes", "no", "unsure"]).describe("The relevancy verdict for this statement."),
-        reason: z.string().describe("Clear explanation of the verdict."),
-      })).describe("Array of verdict objects, one for each statement."),
+      verdicts: z
+        .array(
+          z.object({
+            verdict: z
+              .enum(["yes", "no", "unsure"])
+              .describe("The relevancy verdict for this statement."),
+            reason: z.string().describe("Clear explanation of the verdict."),
+          }),
+        )
+        .describe("Array of verdict objects, one for each statement."),
     }),
   });
 
@@ -244,37 +248,36 @@ const checkAnswerRelevancy = async (opts: {
 
   const totalScore = evaluationResult.verdicts.reduce(
     (sum, verdict) => sum + scores[verdict.verdict],
-    0
+    0,
   );
 
-  const averageScore = evaluationResult.verdicts.length > 0
-    ? totalScore / evaluationResult.verdicts.length
-    : 0;
+  const averageScore =
+    evaluationResult.verdicts.length > 0
+      ? totalScore / evaluationResult.verdicts.length
+      : 0;
 
   return {
     score: averageScore,
     metadata: {
       statements: statementsResult.statements,
       verdicts: evaluationResult.verdicts,
-      rationale: `Evaluated ${evaluationResult.verdicts.length} statements. ` +
-        `Yes: ${evaluationResult.verdicts.filter(v => v.verdict === "yes").length}, ` +
-        `No: ${evaluationResult.verdicts.filter(v => v.verdict === "no").length}, ` +
-        `Unsure: ${evaluationResult.verdicts.filter(v => v.verdict === "unsure").length}`,
+      rationale:
+        `Evaluated ${evaluationResult.verdicts.length} statements. ` +
+        `Yes: ${evaluationResult.verdicts.filter((v) => v.verdict === "yes").length}, ` +
+        `No: ${evaluationResult.verdicts.filter((v) => v.verdict === "no").length}, ` +
+        `Unsure: ${evaluationResult.verdicts.filter((v) => v.verdict === "unsure").length}`,
     },
   };
 };
 
 // This is the scorer that can be passed into the scorers in Evalite
-export const AnswerRelevancy = createScorer<
-  Message[],
-  string,
-  string
->({
+export const AnswerRelevancy = createScorer<Message[], string, string>({
   name: "AnswerRelevancy",
-  description: "Evaluates how relevant the model's answer is to the input question by breaking it down into statements and scoring each statement's relevance.",
+  description:
+    "Evaluates how relevant the model's answer is to the input question by breaking it down into statements and scoring each statement's relevance.",
   scorer: async ({ input, output }) => {
     // Extract the question from the messages
-    const question = input.find(msg => msg.role === "user")?.content ?? "";
+    const question = input.find((msg) => msg.role === "user")?.content ?? "";
 
     return checkAnswerRelevancy({
       question,

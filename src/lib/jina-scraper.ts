@@ -78,21 +78,22 @@ interface JinaReaderResponse {
 
 const callJinaReaderAPI = async (
   url: string,
-  options: JinaCrawlOptions = {}
+  options: JinaCrawlOptions = {},
 ): Promise<JinaCrawlResponse> => {
   const apiKey = process.env.JINA_API_KEY;
 
   if (!apiKey) {
     return {
       success: false,
-      error: "JINA_API_KEY environment variable is not set. Get your API key from https://jina.ai/?sui=apikey",
+      error:
+        "JINA_API_KEY environment variable is not set. Get your API key from https://jina.ai/?sui=apikey",
     };
   }
 
   const headers: Record<string, string> = {
-    "Authorization": `Bearer ${apiKey}`,
+    Authorization: `Bearer ${apiKey}`,
     "Content-Type": "application/json",
-    "Accept": "application/json",
+    Accept: "application/json",
   };
 
   // Add optional headers based on options
@@ -138,7 +139,7 @@ const callJinaReaderAPI = async (
       };
     }
 
-    const data = await response.json() as JinaReaderResponse;
+    const data = (await response.json()) as JinaReaderResponse;
 
     if (data.code !== 200) {
       return {
@@ -165,9 +166,7 @@ const callJinaReaderAPI = async (
 
 export const jinaBulkCrawlWebsites = cacheWithRedis(
   "jinaBulkCrawlWebsites",
-  async (
-    options: JinaBulkCrawlOptions,
-  ): Promise<JinaBulkCrawlResponse> => {
+  async (options: JinaBulkCrawlOptions): Promise<JinaBulkCrawlResponse> => {
     const { urls, maxRetries = DEFAULT_MAX_RETRIES, ...crawlOptions } = options;
 
     const results = await Promise.all(
@@ -177,17 +176,12 @@ export const jinaBulkCrawlWebsites = cacheWithRedis(
       })),
     );
 
-    const allSuccessful = results.every(
-      (r) => r.result.success,
-    );
+    const allSuccessful = results.every((r) => r.result.success);
 
     if (!allSuccessful) {
       const errors = results
         .filter((r) => !r.result.success)
-        .map(
-          (r) =>
-            `${r.url}: ${(r.result as JinaCrawlErrorResponse).error}`,
-        )
+        .map((r) => `${r.url}: ${(r.result as JinaCrawlErrorResponse).error}`)
         .join("\n");
 
       return {
@@ -231,7 +225,7 @@ export const jinaCrawlWebsite = cacheWithRedis(
         MAX_DELAY_MS,
       );
 
-      await new Promise(resolve => setTimeout(resolve, delay));
+      await new Promise((resolve) => setTimeout(resolve, delay));
     }
 
     return {
@@ -244,14 +238,14 @@ export const jinaCrawlWebsite = cacheWithRedis(
 // Helper function to crawl a single URL with default options
 export const jinaReadUrl = async (
   url: string,
-  options: JinaCrawlOptions = {}
+  options: JinaCrawlOptions = {},
 ): Promise<JinaCrawlResponse> => {
   return jinaCrawlWebsite({ url, ...options });
 };
 
 // Helper function for quick content extraction
 export const jinaExtractContent = async (
-  url: string
+  url: string,
 ): Promise<string | null> => {
   const result = await jinaReadUrl(url, {
     returnFormat: "markdown",

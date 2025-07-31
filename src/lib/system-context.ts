@@ -15,14 +15,8 @@ export type ScrapeResult = {
   result: string;
 };
 
-const toQueryResult = (
-  query: QueryResultSearchResult,
-) =>
-  [
-    `### ${query.date} - ${query.title}`,
-    query.url,
-    query.snippet,
-  ].join("\n\n");
+const toQueryResult = (query: QueryResultSearchResult) =>
+  [`### ${query.date} - ${query.title}`, query.url, query.snippet].join("\n\n");
 
 export class SystemContext {
   /**

@@ -1,5 +1,8 @@
 import { google } from "@ai-sdk/google";
-import { experimental_createMCPClient as createMCPClient, streamText } from "ai";
+import {
+  experimental_createMCPClient as createMCPClient,
+  streamText,
+} from "ai";
 
 // this is an example of how to create a client for the MCP (Multi-Channel Protocol)
 // and how to use it with ai SDK
@@ -15,7 +18,6 @@ const mcpClient = await createMCPClient({
     },
   },
 });
-
 
 const tools = await mcpClient.tools();
 

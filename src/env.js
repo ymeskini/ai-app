@@ -10,8 +10,8 @@ export const env = createEnv({
     REDIS_URL: z.string().url(),
     DATABASE_URL: z.string().url(),
     NODE_ENV: z
-    .enum(["development", "test", "production"])
-    .default("development"),
+      .enum(["development", "test", "production"])
+      .default("development"),
     GOOGLE_GENERATIVE_AI_API_KEY: z.string(),
     AUTH_DISCORD_ID: z.string(),
     AUTH_DISCORD_SECRET: z.string(),

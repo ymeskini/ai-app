@@ -19,7 +19,7 @@ export function AuthButton({ isAuthenticated, userImage }: AuthButtonProps) {
     try {
       await signIn("discord", {
         callbackUrl: "/",
-        redirect: true
+        redirect: true,
       });
     } catch (error) {
       console.error("Sign in error:", error);
@@ -44,7 +44,7 @@ export function AuthButton({ isAuthenticated, userImage }: AuthButtonProps) {
           router.push("/");
           void signOut();
         }}
-        className="flex w-full items-center justify-center p-1 text-sm text-gray-700 hover:text-gray-900 focus:outline-hidden focus:ring-2 focus:ring-blue-400"
+        className="flex w-full items-center justify-center p-1 text-sm text-gray-700 hover:text-gray-900 focus:ring-2 focus:ring-blue-400 focus:outline-hidden"
       >
         Sign out
       </button>
@@ -53,7 +53,7 @@ export function AuthButton({ isAuthenticated, userImage }: AuthButtonProps) {
     <button
       onClick={handleSignIn}
       disabled={isSigningIn}
-      className="flex w-full items-center justify-center gap-2 rounded-lg bg-gray-100 p-3 text-sm text-gray-700 hover:bg-gray-200 focus:outline-hidden focus:ring-2 focus:ring-blue-400 disabled:opacity-50 disabled:cursor-not-allowed"
+      className="flex w-full items-center justify-center gap-2 rounded-lg bg-gray-100 p-3 text-sm text-gray-700 hover:bg-gray-200 focus:ring-2 focus:ring-blue-400 focus:outline-hidden disabled:cursor-not-allowed disabled:opacity-50"
     >
       {isSigningIn ? (
         <>

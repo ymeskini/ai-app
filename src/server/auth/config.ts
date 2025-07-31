@@ -64,7 +64,9 @@ export const authConfig = {
         // profile.username contains the Discord username
         const discordUsername = profile?.username as string | undefined;
         if (discordUsername !== env.ALLOWED_USER) {
-          console.log(`Unauthorized login attempt by Discord user: ${discordUsername ?? 'unknown'}`);
+          console.log(
+            `Unauthorized login attempt by Discord user: ${discordUsername ?? "unknown"}`,
+          );
           // Return false to reject the sign-in
           return false;
         }
@@ -80,7 +82,7 @@ export const authConfig = {
     }),
   },
   pages: {
-    signIn: '/', // Redirect to home page after sign in
-    error: '/', // Redirect to home page on error
+    signIn: "/", // Redirect to home page after sign in
+    error: "/", // Redirect to home page on error
   },
 } satisfies NextAuthConfig;
