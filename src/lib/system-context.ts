@@ -1,3 +1,6 @@
+import type { Message } from "ai";
+import { formatMessageHistory } from "./format-message-history";
+
 export type QueryResultSearchResult = {
   date: string;
   title: string;
@@ -38,9 +41,14 @@ export class SystemContext {
    * The user's location context
    */
   private locationContext: string;
+  /**
+   * The messages exchanged in the chat
+   */
+  private messages: Message[];
 
-  constructor(locationContext: string) {
+  constructor(locationContext: string,  messages: Message[]) {
     this.locationContext = locationContext;
+    this.messages = messages;
   }
 
   shouldStop() {
@@ -85,6 +93,10 @@ export class SystemContext {
         ].join("\n\n"),
       )
       .join("\n\n");
+  }
+
+  getMessagesHistory(): string {
+    return formatMessageHistory(this.messages);
   }
 
   getLocationContext(): string {

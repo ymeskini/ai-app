@@ -87,7 +87,7 @@ export const runAgentLoop = async (
   onFinish: (finishResult: StreamTextFinishResult) => void,
 ): Promise<StreamTextResult<never, string>> => {
   // A persistent container for the state of our system
-  const ctx = new SystemContext(locationContext);
+  const ctx = new SystemContext(locationContext, messages);
 
   // A loop that continues until we have an answer or we've taken maxSteps actions
   while (ctx.getStep() < maxSteps) {
@@ -95,7 +95,6 @@ export const runAgentLoop = async (
     const nextAction = await getNextAction(
       ctx,
       userQuery,
-      messages,
       langfuseTraceId,
     );
 
