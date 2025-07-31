@@ -330,3 +330,24 @@ This tiered approach ensures:
 - **Fast feedback** during development (dev dataset)
 - **Adequate coverage** before deployment (ci dataset)
 - **Comprehensive protection** against regressions (full dataset)
+
+## 🧭 Agents vs. Workflows
+
+When designing AI-powered applications, a key architectural decision is how much control-flow power to give to the LLM. This is often framed as the difference between "agents" and "workflows."
+
+### Agents
+
+An **agentic** system gives the LLM significant autonomy to decide the next action at each step. The LLM can choose, for example, whether to search the web, scrape a URL, or generate an answer. It may also decide how many searches to perform, which URLs to scrape, and when to generate a final answer. The more control-flow decisions are handed to the LLM, the more flexible—but also less predictable—the system becomes. Running the same query multiple times may yield different behaviors and outcomes.
+
+### Workflows
+
+A **workflow** approach, by contrast, is deterministic and predictable. The sequence of steps is predefined in code, and the LLM is restricted to follow this path or make only limited decisions. This reduces variability and makes the application’s behavior more consistent and reliable.
+
+### Tuning the Agentic Dial
+
+There is a spectrum between fully agentic and fully workflow-driven systems. You can "turn the dial" by:
+- Reducing the LLM’s decision space
+- Combining multiple tool calls into fixed workflows
+- Restricting the LLM to follow a predetermined path
+
+Agentic systems offer flexibility and adaptability, while workflow-driven systems provide predictability and repeatability. The right balance depends on your application’s needs and the desired trade-off between flexibility and control.
