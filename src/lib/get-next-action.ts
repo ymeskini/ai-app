@@ -28,10 +28,17 @@ export interface AnswerAction {
 export type Action = SearchAction | ScrapeAction | AnswerAction;
 
 // Message annotation type for progress tracking
-export type OurMessageAnnotation = {
-  type: "NEW_ACTION";
-  action: Action;
-};
+export type OurMessageAnnotation = 
+  | {
+      type: "NEW_ACTION";
+      action: Action;
+    }
+  | {
+      type: "ACTION_UPDATE";
+      stepIndex: number;
+      status: "loading" | "completed" | "error";
+      error?: string;
+    };
 
 // Zod schema for structured output
 export const actionSchema = z.object({

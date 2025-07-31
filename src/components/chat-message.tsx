@@ -1,8 +1,9 @@
 import ReactMarkdown, { type Components } from "react-markdown";
 import type { Message } from "ai";
-import { useState } from "react";
-import { Search, Link } from "lucide-react";
+import { useState, useMemo } from "react";
+import { Search, Link, Loader2, CheckCircle, XCircle } from "lucide-react";
 import type { OurMessageAnnotation } from "~/lib/get-next-action";
+import { cn } from "~/lib/utils";
 
 export type MessagePart = NonNullable<Message["parts"]>[number];
 
@@ -25,7 +26,7 @@ const components: Components = {
     </code>
   ),
   pre: ({ children }) => (
-    <pre className="mb-4 overflow-x-auto rounded-lg bg-gray-100 border border-gray-200 p-4 text-gray-800">
+    <pre className="mb-4 overflow-x-auto rounded-lg border border-gray-200 bg-gray-100 p-4 text-gray-800">
       {children}
     </pre>
   ),
@@ -49,15 +50,22 @@ const TextPart = ({ text }: { text: string }) => {
   return <Markdown>{text}</Markdown>;
 };
 
-const ToolInvocationPart = ({ part }: { part: MessagePart & { type: "tool-invocation" } }) => {
+const ToolInvocationPart = ({
+  part,
+}: {
+  part: MessagePart & { type: "tool-invocation" };
+}) => {
   const { toolInvocation } = part;
 
-  if (toolInvocation.state === "partial-call" || toolInvocation.state === "call") {
+  if (
+    toolInvocation.state === "partial-call" ||
+    toolInvocation.state === "call"
+  ) {
     return (
-            <div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
+      <div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
         <div className="text-sm text-gray-700">
           <strong>🔧 {toolInvocation.toolName}</strong>
-          <pre className="mt-2 whitespace-pre-wrap text-xs text-gray-600">
+          <pre className="mt-2 text-xs whitespace-pre-wrap text-gray-600">
             {JSON.stringify(toolInvocation.args, null, 2)}
           </pre>
           <div className="mt-2 text-xs text-gray-500">⏳ In progress...</div>
@@ -76,11 +84,10 @@ const ToolInvocationPart = ({ part }: { part: MessagePart & { type: "tool-invoca
           Args: {JSON.stringify(toolInvocation.args, null, 2)}
         </div>
         <div className="text-sm text-gray-700">
-          <pre className="whitespace-pre-wrap text-xs text-gray-600">
+          <pre className="text-xs whitespace-pre-wrap text-gray-600">
             {typeof toolInvocation.result === "string"
               ? toolInvocation.result
-              : JSON.stringify(toolInvocation.result, null, 2)
-            }
+              : JSON.stringify(toolInvocation.result, null, 2)}
           </pre>
         </div>
       </div>
@@ -104,69 +111,126 @@ const ReasoningSteps = ({
 }: {
   annotations: OurMessageAnnotation[];
 }) => {
-  const [openStep, setOpenStep] = useState<
-    number | null
-  >(null);
+  const [openStep, setOpenStep] = useState<number | null>(null);
 
-  if (annotations.length === 0) return null;
+  // Process annotations to build step states
+  const stepStates = useMemo(() => {
+    const steps: Array<{
+      action: Extract<OurMessageAnnotation, { type: "NEW_ACTION" }>["action"];
+      status: "pending" | "loading" | "completed" | "error";
+      error?: string;
+    }> = [];
+
+    annotations.forEach((annotation) => {
+      if (annotation.type === "NEW_ACTION") {
+        steps.push({
+          action: annotation.action,
+          status: "pending",
+        });
+      } else if (annotation.type === "ACTION_UPDATE") {
+        const step = steps[annotation.stepIndex];
+        if (step) {
+          step.status = annotation.status;
+          step.error = annotation.error;
+        }
+      }
+    });
+
+    return steps;
+  }, [annotations]);
+
+  if (stepStates.length === 0) return null;
+
+  const getStatusIcon = (status: string) => {
+    switch (status) {
+      case "loading":
+        return <Loader2 className="h-4 w-4 animate-spin text-blue-400" />;
+      case "completed":
+        return <CheckCircle className="h-4 w-4 text-green-400" />;
+      case "error":
+        return <XCircle className="h-4 w-4 text-red-400" />;
+      default:
+        return null;
+    }
+  };
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case "loading":
+        return "border-blue-400 bg-blue-50";
+      case "completed":
+        return "border-green-400 bg-green-50";
+      case "error":
+        return "border-red-400 bg-red-50";
+      default:
+        return "border-gray-500 bg-gray-800";
+    }
+  };
 
   return (
     <div className="mb-4 w-full">
       <ul className="space-y-1">
-        {annotations.map((annotation, index) => {
+        {stepStates.map((step, index) => {
           const isOpen = openStep === index;
           return (
             <li key={index} className="relative">
               <button
-                onClick={() =>
-                  setOpenStep(isOpen ? null : index)
-                }
-                className={`min-w-34 flex w-full flex-shrink-0 items-center rounded px-2 py-1 text-left text-sm transition-colors ${
-                  isOpen
-                    ? "bg-gray-700 text-gray-200"
-                    : "text-gray-400 hover:bg-gray-800 hover:text-gray-300"
-                }`}
+                onClick={() => setOpenStep(isOpen ? null : index)}
+                className={cn(
+                  `flex w-full min-w-34 flex-shrink-0 items-center rounded px-2 py-1 text-left text-sm transition-colors`,
+                  {
+                    "bg-gray-700 text-gray-200": isOpen,
+                    "text-gray-400 hover:bg-gray-800 hover:text-gray-300":
+                      !isOpen,
+                  },
+                )}
               >
                 <span
-                  className={`z-10 mr-3 flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full border-2 border-gray-500 text-xs font-bold ${
+                  className={cn(
+                    "z-10 mr-3 flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full border-2 text-xs font-bold",
                     isOpen
                       ? "border-blue-400 text-white"
-                      : "bg-gray-800 text-gray-300"
-                  }`}
+                      : getStatusColor(step.status),
+                    step.status !== "pending"
+                      ? "text-gray-800"
+                      : "text-gray-300",
+                  )}
                 >
-                  {index + 1}
+                  {step.status === "loading" ||
+                  step.status === "completed" ||
+                  step.status === "error" ? (
+                    <div className="flex items-center justify-center">
+                      {getStatusIcon(step.status)}
+                    </div>
+                  ) : (
+                    index + 1
+                  )}
                 </span>
-                {annotation.action.title}
+                <span className="flex-1">{step.action.title}</span>
               </button>
-              <div
-                className={`${isOpen ? "mt-1" : "hidden"}`}
-              >
+              <div className={`${isOpen ? "mt-1" : "hidden"}`}>
                 {isOpen && (
                   <div className="px-2 py-1">
-                    <div className="text-sm italic text-gray-400">
-                      <Markdown>
-                        {annotation.action.reasoning}
-                      </Markdown>
+                    <div className="text-sm text-gray-400 italic">
+                      <Markdown>{step.action.reasoning}</Markdown>
                     </div>
-                    {annotation.action.type ===
-                      "search" && (
-                      <div className="mt-2 flex items-center gap-2 text-sm text-gray-400">
-                        <Search className="size-4" />
-                        <span>
-                          {annotation.action.query}
-                        </span>
+                    {step.error && (
+                      <div className="mt-2 text-sm text-red-400">
+                        Error: {step.error}
                       </div>
                     )}
-                    {annotation.action.type ===
-                      "scrape" && (
+                    {step.action.type === "search" && (
+                      <div className="mt-2 flex items-center gap-2 text-sm text-gray-400">
+                        <Search className="size-4" />
+                        <span>{step.action.query}</span>
+                      </div>
+                    )}
+                    {step.action.type === "scrape" && (
                       <div className="mt-2 flex items-center gap-2 text-sm text-gray-400">
                         <Link className="size-4" />
                         <span>
-                          {annotation.action.urls
-                            ?.map(
-                              (url) =>
-                                new URL(url).hostname,
-                            )
+                          {step.action.urls
+                            ?.map((url) => new URL(url).hostname)
                             ?.join(", ")}
                         </span>
                       </div>
@@ -182,15 +246,23 @@ const ReasoningSteps = ({
   );
 };
 
-export const ChatMessage = ({ parts, role, userName, annotations }: ChatMessageProps) => {
+export const ChatMessage = ({
+  parts,
+  role,
+  userName,
+  annotations,
+}: ChatMessageProps) => {
   const isAI = role === "assistant";
 
   return (
     <div className="mb-6">
       <div
-        className={`rounded-lg p-4 border ${
-          isAI ? "bg-gray-50 text-gray-800 border-gray-200" : "bg-white text-gray-900 border-gray-300"
-        }`}
+        className={cn(
+          "rounded-lg border p-4",
+          isAI
+            ? "border-gray-200 bg-gray-50 text-gray-800"
+            : "border-gray-300 bg-white text-gray-900",
+        )}
       >
         <p className="mb-2 text-sm font-semibold text-gray-600">
           {isAI ? "AI" : userName}
@@ -204,9 +276,7 @@ export const ChatMessage = ({ parts, role, userName, annotations }: ChatMessageP
         <div className="prose max-w-none">
           {parts?.map((part, index) => (
             <MessagePartComponent key={index} part={part} />
-          )) ?? (
-            <div className="text-gray-500 italic">No content</div>
-          )}
+          )) ?? <div className="text-gray-500 italic">No content</div>}
         </div>
       </div>
     </div>

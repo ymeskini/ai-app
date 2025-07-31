@@ -27,29 +27,45 @@ export interface StreamTextFinishResult {
 /**
  * Type for message annotations that can be serialized to JSON
  */
-export type SerializableMessageAnnotation = {
-  type: string;
-  action: {
-    type: string;
-    title: string;
-    reasoning: string;
-    query?: string;
-    urls?: string[];
-  };
-};
+export type SerializableMessageAnnotation = 
+  | {
+      type: "NEW_ACTION";
+      action: {
+        type: string;
+        title: string;
+        reasoning: string;
+        query?: string;
+        urls?: string[];
+      };
+    }
+  | {
+      type: "ACTION_UPDATE";
+      stepIndex: number;
+      status: "loading" | "completed" | "error";
+      error?: string;
+    };
 
 /**
  * Convert OurMessageAnnotation to a serializable format
  */
 export function serializeAnnotation(annotation: OurMessageAnnotation): SerializableMessageAnnotation {
-  return {
-    type: annotation.type,
-    action: {
-      type: annotation.action.type,
-      title: annotation.action.title,
-      reasoning: annotation.action.reasoning,
-      ...(annotation.action.type === "search" && { query: annotation.action.query }),
-      ...(annotation.action.type === "scrape" && { urls: annotation.action.urls }),
-    },
-  };
+  if (annotation.type === "NEW_ACTION") {
+    return {
+      type: annotation.type,
+      action: {
+        type: annotation.action.type,
+        title: annotation.action.title,
+        reasoning: annotation.action.reasoning,
+        ...(annotation.action.type === "search" && { query: annotation.action.query }),
+        ...(annotation.action.type === "scrape" && { urls: annotation.action.urls }),
+      },
+    };
+  } else {
+    return {
+      type: annotation.type,
+      stepIndex: annotation.stepIndex,
+      status: annotation.status,
+      error: annotation.error,
+    };
+  }
 }

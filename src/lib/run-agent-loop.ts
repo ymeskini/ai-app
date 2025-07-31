@@ -99,6 +99,7 @@ export const runAgentLoop = async (
     );
 
     // Send annotation about the action we chose
+    const stepIndex = ctx.getStep();
     if (writeMessageAnnotation) {
       writeMessageAnnotation({
         type: "NEW_ACTION",
@@ -108,44 +109,106 @@ export const runAgentLoop = async (
 
     // We execute the action and update the state of our system
     if (nextAction.type === "search") {
-      const searchResults = await searchWeb(nextAction.query);
+      // Update status to loading
+      if (writeMessageAnnotation) {
+        writeMessageAnnotation({
+          type: "ACTION_UPDATE",
+          stepIndex,
+          status: "loading",
+        });
+      }
 
-      // Convert search results to the format expected by SystemContext
-      const queryResult: QueryResult = {
-        query: nextAction.query,
-        results: searchResults.map((result) => ({
-          date: result.date,
-          title: result.title,
-          url: result.url,
-          snippet: result.snippet,
-        })),
-      };
+      try {
+        const searchResults = await searchWeb(nextAction.query);
 
-      ctx.reportQueries([queryResult]);
+        // Convert search results to the format expected by SystemContext
+        const queryResult: QueryResult = {
+          query: nextAction.query,
+          results: searchResults.map((result) => ({
+            date: result.date,
+            title: result.title,
+            url: result.url,
+            snippet: result.snippet,
+          })),
+        };
+
+        ctx.reportQueries([queryResult]);
+
+        // Update status to completed
+        if (writeMessageAnnotation) {
+          writeMessageAnnotation({
+            type: "ACTION_UPDATE",
+            stepIndex,
+            status: "completed",
+          });
+        }
+      } catch (error) {
+        // Update status to error
+        if (writeMessageAnnotation) {
+          writeMessageAnnotation({
+            type: "ACTION_UPDATE",
+            stepIndex,
+            status: "error",
+            error: error instanceof Error ? error.message : "Search failed",
+          });
+        }
+        throw error;
+      }
     } else if (nextAction.type === "scrape") {
-      const scrapeResults = await scrapeUrl(nextAction.urls);
+      // Update status to loading
+      if (writeMessageAnnotation) {
+        writeMessageAnnotation({
+          type: "ACTION_UPDATE",
+          stepIndex,
+          status: "loading",
+        });
+      }
 
-      // Handle the case where scrapeResults might have an error
-      if ("success" in scrapeResults && !scrapeResults.success) {
-        // If bulk scraping failed, still try to report what we got
-        const scrapeData = scrapeResults.results
-          .filter((result) => result.success && result.content)
-          .map((result) => ({
-            url: result.url,
-            result: result.content!,
-          }));
+      try {
+        const scrapeResults = await scrapeUrl(nextAction.urls);
 
-        ctx.reportScrapes(scrapeData);
-      } else if (Array.isArray(scrapeResults)) {
-        // Filter successful scrapes and report them
-        const scrapeData = scrapeResults
-          .filter((result) => result.success && result.content)
-          .map((result) => ({
-            url: result.url,
-            result: result.content!,
-          }));
+        // Handle the case where scrapeResults might have an error
+        if ("success" in scrapeResults && !scrapeResults.success) {
+          // If bulk scraping failed, still try to report what we got
+          const scrapeData = scrapeResults.results
+            .filter((result) => result.success && result.content)
+            .map((result) => ({
+              url: result.url,
+              result: result.content!,
+            }));
 
-        ctx.reportScrapes(scrapeData);
+          ctx.reportScrapes(scrapeData);
+        } else if (Array.isArray(scrapeResults)) {
+          // Filter successful scrapes and report them
+          const scrapeData = scrapeResults
+            .filter((result) => result.success && result.content)
+            .map((result) => ({
+              url: result.url,
+              result: result.content!,
+            }));
+
+          ctx.reportScrapes(scrapeData);
+        }
+
+        // Update status to completed
+        if (writeMessageAnnotation) {
+          writeMessageAnnotation({
+            type: "ACTION_UPDATE",
+            stepIndex,
+            status: "completed",
+          });
+        }
+      } catch (error) {
+        // Update status to error
+        if (writeMessageAnnotation) {
+          writeMessageAnnotation({
+            type: "ACTION_UPDATE",
+            stepIndex,
+            status: "error",
+            error: error instanceof Error ? error.message : "Scraping failed",
+          });
+        }
+        throw error;
       }
     } else if (nextAction.type === "answer") {
       return answerQuestion(ctx, userQuery, messages, {

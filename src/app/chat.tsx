@@ -20,30 +20,36 @@ interface ChatProps {
   initialMessages?: Message[];
 }
 
-export const ChatPage = ({ userName, isAuthenticated, chatId, isNewChat, initialMessages = [] }: ChatProps) => {
+// Helper function to format the reset time
+const formatResetTime = (resetTime: string) => {
+  const resetDate = new Date(resetTime);
+  const now = new Date();
+  const timeDiff = resetDate.getTime() - now.getTime();
+
+  if (timeDiff <= 0) {
+    return "now";
+  }
+
+  const hours = Math.floor(timeDiff / (1000 * 60 * 60));
+  const minutes = Math.floor((timeDiff % (1000 * 60 * 60)) / (1000 * 60));
+
+  if (hours > 0) {
+    return `${hours}h ${minutes}m`;
+  } else {
+    return `${minutes}m`;
+  }
+};
+
+export const ChatPage = ({
+  userName,
+  isAuthenticated,
+  chatId,
+  isNewChat,
+  initialMessages = [],
+}: ChatProps) => {
   const [showSignInModal, setShowSignInModal] = useState(false);
   const [rateLimitError, setRateLimitError] = useState<string | null>(null);
   const router = useRouter();
-
-  // Helper function to format the reset time
-  const formatResetTime = (resetTime: string) => {
-    const resetDate = new Date(resetTime);
-    const now = new Date();
-    const timeDiff = resetDate.getTime() - now.getTime();
-
-    if (timeDiff <= 0) {
-      return "now";
-    }
-
-    const hours = Math.floor(timeDiff / (1000 * 60 * 60));
-    const minutes = Math.floor((timeDiff % (1000 * 60 * 60)) / (1000 * 60));
-
-    if (hours > 0) {
-      return `${hours}h ${minutes}m`;
-    } else {
-      return `${minutes}m`;
-    }
-  };
 
   const {
     messages,
@@ -93,7 +99,7 @@ export const ChatPage = ({ userName, isAuthenticated, chatId, isNewChat, initial
     }
   }, [data, router]);
 
-  const isLoading = status === "submitted";
+  const isLoading = status === "submitted" || status === "streaming";
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -108,9 +114,9 @@ export const ChatPage = ({ userName, isAuthenticated, chatId, isNewChat, initial
 
   return (
     <>
-      <div className="flex flex-1 flex-col min-h-0 bg-white h-full">
+      <div className="flex h-full min-h-0 flex-1 flex-col bg-white">
         <StickToBottom
-          className="w-full flex-1 min-h-0 [&>div]:overflow-y-auto [&>div]:scrollbar-thin [&>div]:scrollbar-track-gray-100 [&>div]:scrollbar-thumb-gray-300 hover:[&>div]:scrollbar-thumb-gray-400"
+          className="[&>div]:scrollbar-thin [&>div]:scrollbar-track-gray-100 [&>div]:scrollbar-thumb-gray-300 hover:[&>div]:scrollbar-thumb-gray-400 min-h-0 w-full flex-1 [&>div]:overflow-y-auto"
           resize="instant"
           initial="instant"
           role="log"
@@ -129,10 +135,13 @@ export const ChatPage = ({ userName, isAuthenticated, chatId, isNewChat, initial
                       if (!message.annotations) return undefined;
                       return message.annotations
                         .filter((ann) => {
-                          return ann != null &&
-                                 typeof ann === 'object' &&
-                                 'type' in ann &&
-                                 ann.type === 'NEW_ACTION';
+                          return (
+                            ann != null &&
+                            typeof ann === "object" &&
+                            "type" in ann &&
+                            (ann.type === "NEW_ACTION" ||
+                              ann.type === "ACTION_UPDATE")
+                          );
                         })
                         .map((ann) => ann as unknown as OurMessageAnnotation);
                     })()}
@@ -158,13 +167,13 @@ export const ChatPage = ({ userName, isAuthenticated, chatId, isNewChat, initial
                 placeholder="Say something..."
                 autoFocus
                 aria-label="Chat input"
-                className="w-full rounded-full border border-gray-300 bg-white py-2 px-4 pr-12 text-gray-900 placeholder-gray-500 focus:border-gray-400 focus:outline-hidden focus:ring-2 focus:ring-blue-400 disabled:opacity-50"
+                className="w-full rounded-full border border-gray-300 bg-white px-4 py-2 pr-12 text-gray-900 placeholder-gray-500 focus:border-gray-400 focus:ring-2 focus:ring-blue-400 focus:outline-hidden disabled:opacity-50"
                 disabled={isLoading}
               />
               <button
                 type="submit"
                 disabled={isLoading || !input.trim()}
-                className="absolute right-2 flex h-8 w-8 items-center justify-center rounded-full bg-gray-900 text-white hover:bg-gray-800 focus:outline-hidden focus:ring-2 focus:ring-blue-400 disabled:opacity-50 disabled:hover:bg-gray-900 transition-colors"
+                className="absolute right-2 flex h-8 w-8 items-center justify-center rounded-full bg-gray-900 text-white transition-colors hover:bg-gray-800 focus:ring-2 focus:ring-blue-400 focus:outline-hidden disabled:opacity-50 disabled:hover:bg-gray-900"
               >
                 {isLoading ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
