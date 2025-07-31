@@ -1,9 +1,9 @@
 import type { Message } from "ai";
 import { createDataStreamResponse } from "ai";
 import { Langfuse } from "langfuse";
+
 import { env } from "~/env";
 import { auth } from "~/server/auth";
-
 import { upsertChat } from "~/server/db/chat";
 import { streamFromDeepSearch } from "~/lib/deep-search";
 import { generateChatTitle } from "~/lib/generate-chat-title";

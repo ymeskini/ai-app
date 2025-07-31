@@ -37,8 +37,10 @@ services:
       context: .
       dockerfile: Dockerfile
     env_file: .env
+    environment:
+      WATCHPACK_POLLING: true
     container_name: ai-app
-    restart: unless-stopped
+    restart: always
     ports:
       - "3000:3000"
       - "4983:4983"
@@ -48,9 +50,8 @@ services:
       redis:
         condition: service_healthy
     volumes:
-      - .:/app
-      - /app/node_modules
-      - /app/.next
+      - ./src:/app/src
+      - ./public:/app/public
     command: npm run dev
 
 volumes:
