@@ -34,6 +34,15 @@ export class SystemContext {
    */
   private scrapeHistory: ScrapeResult[] = [];
 
+  /**
+   * The user's location context
+   */
+  private locationContext: string;
+
+  constructor(locationContext: string) {
+    this.locationContext = locationContext;
+  }
+
   shouldStop() {
     return this.step >= 10;
   }
@@ -76,5 +85,9 @@ export class SystemContext {
         ].join("\n\n"),
       )
       .join("\n\n");
+  }
+
+  getLocationContext(): string {
+    return this.locationContext;
   }
 }

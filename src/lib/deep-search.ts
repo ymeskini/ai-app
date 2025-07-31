@@ -9,6 +9,7 @@ import type { StreamTextFinishResult } from "~/types/chat";
 
 export const streamFromDeepSearch = async (opts: {
   messages: Message[];
+  locationContext: string;
   onFinish: (finishResult: StreamTextFinishResult) => void;
   telemetry: TelemetrySettings;
   writeMessageAnnotation: (annotation: OurMessageAnnotation) => void;
@@ -28,6 +29,7 @@ export const streamFromDeepSearch = async (opts: {
   return await runAgentLoop(
     queryString,
     opts.messages,
+    opts.locationContext,
     10,
     opts.writeMessageAnnotation,
     langfuseTraceId,
@@ -38,6 +40,8 @@ export const streamFromDeepSearch = async (opts: {
 export async function askDeepSearch(messages: Message[]) {
   const result = await streamFromDeepSearch({
     messages,
+    locationContext:
+      "About the origin of user's request:\n- lat: unknown\n- lon: unknown\n- city: unknown\n- country: unknown",
     onFinish: () => {
       // No-op for evaluation purposes
       return;

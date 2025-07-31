@@ -80,13 +80,14 @@ export const scrapeUrl = async (urls: string[]) => {
 export const runAgentLoop = async (
   userQuery: string,
   messages: Message[],
+  locationContext: string,
   maxSteps = 10,
   writeMessageAnnotation: (annotation: OurMessageAnnotation) => void,
   langfuseTraceId: string,
   onFinish: (finishResult: StreamTextFinishResult) => void,
 ): Promise<StreamTextResult<never, string>> => {
   // A persistent container for the state of our system
-  const ctx = new SystemContext();
+  const ctx = new SystemContext(locationContext);
 
   // A loop that continues until we have an answer or we've taken maxSteps actions
   while (ctx.getStep() < maxSteps) {

@@ -1,6 +1,7 @@
 import type { Message } from "ai";
 import { createDataStreamResponse } from "ai";
 import { Langfuse } from "langfuse";
+import { geolocation } from "@vercel/functions";
 
 import { env } from "~/env";
 import { auth } from "~/server/auth";
@@ -18,6 +19,20 @@ const langfuse = new Langfuse({
   environment: env.NODE_ENV,
 });
 
+function getRequestLocationHints(requestHints: {
+  latitude?: string;
+  longitude?: string;
+  city?: string;
+  country?: string;
+}) {
+  return `About the origin of user's request:
+- lat: ${requestHints.latitude}
+- lon: ${requestHints.longitude}
+- city: ${requestHints.city}
+- country: ${requestHints.country}
+`;
+}
+
 export const maxDuration = 60;
 
 export async function POST(request: Request) {
@@ -26,6 +41,27 @@ export async function POST(request: Request) {
   if (!session) {
     return new Response("Unauthorized", { status: 401 });
   }
+
+  // Mock geolocation headers for development
+  if (process.env.NODE_ENV === "development") {
+    request.headers.set("x-vercel-ip-country", "US");
+    request.headers.set("x-vercel-ip-country-region", "CA");
+    request.headers.set("x-vercel-ip-city", "San Francisco");
+    request.headers.set("x-vercel-ip-latitude", "37.7749");
+    request.headers.set("x-vercel-ip-longitude", "-122.4194");
+  }
+
+  // Get user's location from request
+  const { longitude, latitude, city, country } = geolocation(request);
+
+  const requestLocationHints = {
+    longitude,
+    latitude,
+    city,
+    country,
+  };
+
+  const locationContext = getRequestLocationHints(requestLocationHints);
 
   // Create Langfuse trace early to track all operations
   const trace = langfuse.trace({
@@ -106,6 +142,7 @@ export async function POST(request: Request) {
       // Wait for the result from the agent loop
       const result = await streamFromDeepSearch({
         messages,
+        locationContext,
         telemetry: {
           isEnabled: true,
           functionId: `agent`,

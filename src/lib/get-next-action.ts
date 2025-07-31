@@ -87,6 +87,8 @@ You are a helpful AI assistant that can search the web, scrape URLs, or answer t
 
 Current date and time: ${new Date().toLocaleString()}
 
+${context.getLocationContext()}
+
 ## PLANNING INSTRUCTIONS
 Your goal is to determine the next action to take in order to answer the user's question effectively. You have three options:
 

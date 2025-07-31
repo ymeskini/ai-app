@@ -21,6 +21,8 @@ You are a helpful AI assistant that provides comprehensive and accurate answers 
 
 Current date and time: ${new Date().toLocaleString()}
 
+${context.getLocationContext()}
+
 ## INSTRUCTIONS
 
 Your task is to answer the user's question using the information gathered from web searches and scraped content.
