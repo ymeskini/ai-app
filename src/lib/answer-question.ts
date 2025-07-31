@@ -34,7 +34,7 @@ ${
 ## RESPONSE GUIDELINES
 
 1. **Comprehensive Coverage**: Address all aspects of the user's question
-2. **Source Citations**: Always cite your sources with inline links using the format [source name](URL)
+2. **Source Citations**: Always cite your sources with inline links using the format [<source name>](URL) where <source name> is descriptive and show the name of the source.
 3. **Accuracy**: Base your answer on the factual information from the scraped content
 4. **Clarity**: Organize your response with clear structure and headings when appropriate
 5. **Currency**: When discussing current events or recent information, mention the date context

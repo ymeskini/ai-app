@@ -9,11 +9,17 @@ export const formatMessageHistory = (messages: Message[]): string => {
   }
 
   // Format the conversation history excluding the current user message
-  const conversationHistory = messages.slice(0, -1).map((message) => {
-    const role = message.role === 'user' ? 'User' : 'Assistant';
-    const content = typeof message.content === 'string' ? message.content : JSON.stringify(message.content);
-    return `${role}: ${content}`;
-  }).join('\n\n');
+  const conversationHistory = messages
+    .slice(0, -1)
+    .map((message) => {
+      const role = message.role === "user" ? "User" : "Assistant";
+      const content =
+        typeof message.content === "string"
+          ? message.content
+          : JSON.stringify(message.content);
+      return `<${role}>${content}</${role}>`;
+    })
+    .join("\n\n");
 
   return `Previous conversation history:\n${conversationHistory}`;
 };
