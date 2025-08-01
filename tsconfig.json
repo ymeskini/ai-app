@@ -41,5 +41,5 @@
     "**/*.js",
     ".next/types/**/*.ts"
   ],
-  "exclude": ["node_modules", "evals"]
+  "exclude": ["node_modules"]
 }
