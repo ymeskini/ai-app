@@ -23,7 +23,7 @@ Duplicate the `.env.example` file to `.env` and update the values as needed.
 ```bash
 git clone <your-repo-url>
 cd ai-app
-docker-compose up
+docker-compose up --watch
 ```
 
 That's it! The `docker-compose.yml` file includes:
@@ -111,15 +111,40 @@ The schema can be found at `src/server/db/schema.ts`
 The `docker-compose.yml` includes everything you need:
 - **PostgreSQL** with pgvector extension
 - **Redis** for caching and sessions
-- **Next.js application** in development mode
+- **Next.js application** with Turbopack in development mode
 - **Pre-configured environment variables**
 - **Health checks** to ensure services start in the correct order
-- **Volume mounts** for development hot-reloading
+- **Docker Compose watch** for hot reload with Turbopack
+
+### Hot Reload with Turbopack in Docker
+
+This application is configured to use **Turbopack** with **Docker Compose watch** for optimal hot reload performance in containers. The modern approach uses Docker's built-in file watching instead of volume mounting.
+
+To start with hot reload:
+
+```bash
+# Start all services with hot reload (recommended)
+docker-compose up --watch
+
+# Or start in detached mode with hot reload  
+docker-compose up --watch -d
+```
+
+The watch configuration automatically:
+- Syncs source file changes (`./src` → `/app/src`)
+- Syncs public asset changes (`./public` → `/app/public`)  
+- Rebuilds container when `package.json` changes
 
 ### Common Docker Commands
 
 ```bash
-# Start all services (with logs visible)
+# Start all services with hot reload (recommended for development)
+docker-compose up --watch
+
+# Start all services in background with hot reload
+docker-compose up --watch -d
+
+# Start all services (without hot reload)
 docker-compose up
 
 # Start all services in background
@@ -137,6 +162,14 @@ docker-compose up --build
 # Access database GUI
 docker-compose exec app npm run db:studio
 ```
+
+### Why Docker Compose Watch + Turbopack?
+
+Traditional volume mounting with `WATCHPACK_POLLING=true` works for webpack but not for Turbopack. The combination of:
+- **Turbopack** for faster builds and hot reload
+- **Docker Compose watch** for efficient file synchronization
+
+Provides the best development experience in containers.
 
 ## 🔒 Authentication
 
