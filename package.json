@@ -33,6 +33,7 @@
     "@radix-ui/react-separator": "^1.1.7",
     "@radix-ui/react-slot": "^1.2.3",
     "@radix-ui/react-tooltip": "^1.2.7",
+    "@sentry/nextjs": "^10.0.0",
     "@t3-oss/env-nextjs": "^0.10.1",
     "@vercel/functions": "^2.2.5",
     "@vercel/otel": "^1.13.0",
