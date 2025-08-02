@@ -16,40 +16,47 @@ A modern AI-powered application built with Next.js, PostgreSQL (with pgvector), 
 
 ## 🚀 Quick Start
 
-The easiest way to run the entire application stack - just one command:
+The easiest way to run the entire application stack:
 
-Duplicate the `.env.example` file to `.env` and update the values as needed.
+1. **Clone and setup**:
+   ```bash
+   git clone <your-repo-url>
+   cd ai-app
+   npm install
+   ```
 
-```bash
-git clone <your-repo-url>
-cd ai-app
-docker-compose up
-```
+2. **Configure environment**:
+   Duplicate the `.env.example` file to `.env` and update the values as needed.
 
-That's it! The `docker-compose.yml` file includes:
-- **PostgreSQL** with pgvector extension
-- **Redis** for caching
-- **Next.js application** in development mode
+3. **Start everything**:
+   ```bash
+   npm run dev
+   ```
+
+That's it! The dev command automatically:
+- **Starts services** - PostgreSQL and Redis via docker compose
+- **Waits for services** - Ensures they're healthy before proceeding
+- **Starts Next.js** - Runs the app locally with Turbo mode
 
 ### What happens automatically:
 
-1. **Services start** - PostgreSQL, Redis, and the Next.js app
-2. **Dependencies install** - npm install runs automatically
-3. **Database migrations** - Applied when the app starts
-4. **Health checks** - Ensures services are ready before starting the app
+1. **Docker services start** - PostgreSQL with pgvector and Redis start in background
+2. **Health checks** - Waits for services to be ready
+3. **Next.js starts** - Development server starts with hot reloading
+4. **Database migrations** - Applied when the app connects to the database
 
 ### Access your application:
 
 - **App**: http://localhost:3000
 - **Database**: localhost:5432 (postgres/password)
 - **Redis**: localhost:6379 (password: redis-pw)
-- **Database GUI**: Run `docker-compose exec app npm run db:studio` then visit https://local.drizzle.studio
+- **Database GUI**: Run `npm run db:studio` then visit https://local.drizzle.studio
 
 
 ## 📦 Available Scripts
 
 ### Development
-- `npm run dev` - Start development server with Turbo
+- `npm run dev` - Start Docker services and Next.js dev server with Turbo
 - `npm run build` - Build for production
 - `npm run start` - Start production server
 - `npm run preview` - Build and start production server
@@ -82,25 +89,21 @@ That's it! The `docker-compose.yml` file includes:
 
 4. **Apply the migration**
 ```bash
-docker-compose exec app npm run db:migrate
+npm run db:migrate
 ```
 
 ### Database Studio
 
 Access Drizzle Studio for visual database management:
 ```bash
-docker-compose exec app npm run db:studio
+npm run db:studio
 ```
 
 ### Push Schema (Development Only)
 
-```bash
-docker-compose exec app npm run db:push
-```
-
 For rapid prototyping, you can push schema changes directly:
 ```bash
-docker-compose exec app npm run db:push
+npm run db:push
 ```
 The schema can be found at `src/server/db/schema.ts`
 
@@ -108,34 +111,29 @@ The schema can be found at `src/server/db/schema.ts`
 
 ## 🐳 Docker Configuration
 
-The `docker-compose.yml` includes everything you need:
+The `docker-compose.yml` provides the required services:
 - **PostgreSQL** with pgvector extension
 - **Redis** for caching and sessions
-- **Next.js application** in development mode
 - **Pre-configured environment variables**
-- **Health checks** to ensure services start in the correct order
-- **Volume mounts** for development hot-reloading
+- **Health checks** to ensure services are ready
+- **Volume persistence** for database data
+
+The Next.js application runs locally for faster development with hot-reloading.
 
 ### Common Docker Commands
 
 ```bash
-# Start all services (with logs visible)
-docker-compose up
-
-# Start all services in background
+# Start services only (PostgreSQL + Redis)
 docker-compose up -d
 
 # Stop all services
 docker-compose down
 
-# View logs
+# View service logs
 docker-compose logs -f
 
-# Rebuild and start (after code changes to Dockerfile)
-docker-compose up --build
-
-# Access database GUI
-docker-compose exec app npm run db:studio
+# Start everything (services + Next.js app)
+npm run dev
 ```
 
 ## 🔒 Authentication
@@ -185,14 +183,6 @@ The application supports Discord authentication with user restrictions:
 - `ALLOWED_USER` - Discord username that is allowed to sign in (only this user can access the app)
 
 When an unauthorized user attempts to sign in, they will be redirected back to the homepage with an error message explaining that access is denied.
-
-### Docker Deployment
-
-```bash
-docker-compose up -d
-```
-
-The application includes health checks and will automatically run migrations on startup.
 
 # Sucess Criteria
 
