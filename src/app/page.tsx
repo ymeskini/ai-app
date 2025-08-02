@@ -136,6 +136,7 @@ export default async function HomePage({
         <SidebarInset className="flex flex-1 flex-col bg-white">
           <div className="flex flex-shrink-0 items-center gap-2 border-b border-gray-200 p-4">
             <SidebarTrigger className="h-8 w-8 text-gray-600 hover:bg-gray-100 hover:text-gray-900" />
+            {/* Test hot reload: Change this title to verify hot reload works */}
             <div className="text-sm font-medium text-gray-900">Chat</div>
           </div>
           {errorMessage && (
