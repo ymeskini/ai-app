@@ -32,27 +32,6 @@ services:
       timeout: 3s
       retries: 5
 
-  app:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    env_file: .env
-    environment:
-      WATCHPACK_POLLING: true
-    container_name: ai-app
-    restart: always
-    ports:
-      - "3000:3000"
-      - "4983:4983"
-    depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-    volumes:
-      - ./src:/app/src
-      - ./public:/app/public
-    command: npm run dev
 
 volumes:
   postgres_data:
