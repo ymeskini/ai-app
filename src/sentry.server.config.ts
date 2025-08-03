@@ -5,6 +5,7 @@ Sentry.init({
   tracesSampleRate: 1.0,
   enableLogs: true,
   debug: false,
+  skipOpenTelemetrySetup: true, // Skip OpenTelemetry setup for Edge runtime
   // Server-specific configuration
   integrations: [
     // Add server-specific integrations here if needed
