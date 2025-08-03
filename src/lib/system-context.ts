@@ -1,5 +1,4 @@
 import type { Message } from "ai";
-import { formatMessageHistory } from "./format-message-history";
 
 export type SearchResult = {
   date: string;
@@ -130,7 +129,12 @@ export class SystemContext {
   }
 
   getMessagesHistory(): string {
-    return formatMessageHistory(this.messages);
+    return this.messages
+      .map((message) => {
+        const role = message.role === "user" ? "User" : "Assistant";
+        return `<${role}>${message.content}</${role}>`;
+      })
+      .join("\n\n");
   }
 
   getLocationContext(): string {

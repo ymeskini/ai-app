@@ -1,114 +1,46 @@
-import { streamText, type Message } from "ai";
-import * as Sentry from "@sentry/nextjs";
-import { model } from "~/lib/model";
-import type { SystemContext } from "~/lib/system-context";
-import { formatMessageHistory } from "~/lib/format-message-history";
-import type { StreamTextFinishResult } from "~/types/chat";
+import { streamText, type StreamTextResult } from "ai";
+import { type SystemContext } from "./system-context.ts";
+import { model } from "./model.ts";
 
-export const answerQuestion = (
-  context: SystemContext,
-  userQuery: string,
-  messages: Message[],
-  options: {
-    langfuseTraceId: string;
-    onFinish: (finishResult: StreamTextFinishResult) => void;
+export function answerQuestion(
+  ctx: SystemContext,
+  opts: {
     isFinal?: boolean;
+    langfuseTraceId?: string;
+    onFinish: Parameters<typeof streamText>[0]["onFinish"];
   },
-) => {
-  const { isFinal = false, langfuseTraceId, onFinish } = options;
+): StreamTextResult<never, string> {
+  const { isFinal = false, langfuseTraceId, onFinish } = opts;
 
-  const systemPrompt = `
-You are a helpful AI assistant that provides comprehensive and accurate answers based on web search and scraping data.
+  const result = streamText({
+    model,
+    system: `You are a helpful AI assistant that answers questions based on the information gathered from web searches and summarized content.
 
-Current date and time: ${new Date().toLocaleString()}
+When answering:
+1. Be thorough but concise
+2. Always cite your sources using markdown links
+3. If you're unsure about something, say so
+4. Format URLs as markdown links using [title](url)
+5. Never include raw URLs
 
-${context.getLocationContext()}
+${isFinal ? "Note: We may not have all the information needed to answer the question completely. Please provide your best attempt at an answer based on the available information." : ""}`,
+    prompt: `Message History:
+${ctx.getMessagesHistory()}
 
-## INSTRUCTIONS
+Based on the following context, please answer the question:
 
-Your task is to answer the user's question using the information gathered from web searches and content summaries.
-
-${
-  isFinal
-    ? `IMPORTANT: This is your final attempt. You may not have all the information you need, but you must provide your best possible answer based on the available data. If information is incomplete or missing, acknowledge this in your response and provide what insights you can.`
-    : `Use the comprehensive information from both search results and content summaries to provide a detailed, accurate, and well-sourced answer.`
-}
-
-## RESPONSE GUIDELINES
-
-1. **Comprehensive Coverage**: Address all aspects of the user's question
-2. **Source Citations**: Always cite your sources with inline links using the format [<source name>](URL) where <source name> is descriptive and show the name of the source.
-3. **Accuracy**: Base your answer on the factual information from the content summaries
-4. **Clarity**: Organize your response with clear structure and headings when appropriate
-5. **Currency**: When discussing current events or recent information, mention the date context
-6. **Transparency**: If information is conflicting across sources, acknowledge this and present different perspectives
-
-## MARKDOWN LINK FORMATTING
-
-You must format all links as inline markdown links using the exact syntax: \`[link text](URL)\`
-
-**Requirements:**
-- Always use inline link format, never reference-style links
-- Link text should be descriptive and meaningful
-- URLs must be complete and functional
-- No spaces between the closing bracket \`]\` and opening parenthesis \`(\`
-
-**Examples:**
-✅ **Correct:** According to the [latest research from Stanford](https://cs229.stanford.edu/), machine learning algorithms continue to evolve.
-❌ **Incorrect:** According to the latest research from Stanford[1], machine learning algorithms continue to evolve.
-
-## CONVERSATION CONTEXT
-
-${formatMessageHistory(messages)}
-
-## CURRENT USER'S QUESTION
-
-"${userQuery}"
-
-## SEARCH HISTORY (includes search results and content summaries)
-
-${context.getSearchHistory()}
-
-## YOUR RESPONSE
-
-Provide a comprehensive answer to the user's question based on the information above.
-`.trim();
-
-  return Sentry.startSpan(
-    {
-      op: "ai.answer_question",
-      name: isFinal ? "Answer Question (Final)" : "Answer Question",
-    },
-    (span) => {
-      span.setAttribute("user.query", userQuery);
-      span.setAttribute("langfuse.trace_id", langfuseTraceId);
-      span.setAttribute("is_final", isFinal);
-      span.setAttribute(
-        "search.history_count",
-        context.getSearchHistory().length,
-      );
-
-      return streamText({
-        model,
-        prompt: systemPrompt,
-        onFinish: (result) => {
-          try {
-            span.setAttribute("response.text_length", result.text.length);
-            span.setAttribute("response.finish_reason", result.finishReason);
-            onFinish(result);
-          } catch (error) {
-            Sentry.captureException(error);
-            throw error;
-          }
-        },
-        experimental_telemetry: {
+${ctx.getSearchHistory()}`,
+    experimental_telemetry: langfuseTraceId
+      ? {
           isEnabled: true,
-          functionId: isFinal ? "answer-question-final" : "answer-question",
+          functionId: "answer-question",
           metadata: {
-            langfuseTraceId: langfuseTraceId,
+            langfuseTraceId,
           },
-        },
-      });
-    },
-  );
-};
+        }
+      : undefined,
+    onFinish,
+  });
+
+  return result;
+}

@@ -1,46 +1,47 @@
 import { generateText } from "ai";
-import type { Message } from "ai";
-import { summarizerModel } from "~/lib/model";
-import { cacheWithRedis } from "~/server/redis/redis";
-import { formatMessageHistory } from "~/lib/format-message-history";
-import * as Sentry from "@sentry/nextjs";
+import { summarizerModel } from "./model.ts";
+import type { SystemContext } from "./system-context.ts";
+import { cacheWithRedis } from "~/server/redis/redis.ts";
 
-export interface URLSummaryInput {
-  query: string;
-  url: string;
-  title: string;
-  snippet: string;
+type SummarizeURLArgs = {
+  conversation: string;
   scrapedContent: string;
-  conversationHistory: Message[];
-}
+  searchMetadata: {
+    date: string;
+    title: string;
+    url: string;
+  };
+  query: string;
+  langfuseTraceId?: string;
+  ctx?: SystemContext;
+};
 
-export interface URLSummary {
-  url: string;
-  title: string;
-  summary: string;
-}
+export const summarizeURL = cacheWithRedis(
+  "summarizeURL",
+  async (opts: SummarizeURLArgs): Promise<string> => {
+    const {
+      conversation,
+      scrapedContent,
+      searchMetadata,
+      query,
+      langfuseTraceId,
+    } = opts;
 
-/**
- * Summarize URL content using a specialized LLM
- * Uses caching and telemetry
- */
-const _summarizeURL = async (
-  input: URLSummaryInput,
-  langfuseTraceId: string,
-): Promise<URLSummary> => {
-  const { query, url, title, snippet, scrapedContent, conversationHistory } =
-    input;
+    const prompt = `You are a research extraction specialist. Given a research topic and raw web content, create a thoroughly detailed synthesis as a cohesive narrative that flows naturally between key concepts.
 
-  // If there's no scraped content, return the snippet as summary
-  if (!scrapedContent || scrapedContent.trim().length === 0) {
-    return {
-      url,
-      title,
-      summary: snippet,
-    };
-  }
+Research Topic: ${query}
 
-  const prompt = `You are a research extraction specialist. Given a research topic and raw web content, create a thoroughly detailed synthesis as a cohesive narrative that flows naturally between key concepts.
+Source Title: ${searchMetadata.title}
+Source URL: ${searchMetadata.url}
+Source Date: ${searchMetadata.date}
+
+Conversation History (for context):
+${conversation}
+
+Raw Web Content:
+<content>
+${scrapedContent}
+</content>
 
 Extract the most valuable information related to the research topic, including relevant facts, statistics, methodologies, claims, and contextual information. Preserve technical terminology and domain-specific language from the source material.
 
@@ -55,60 +56,24 @@ Important guidelines:
 - Use paragraph breaks only when transitioning between major themes
 
 Critical Reminder: If content lacks a specific aspect of the research topic, clearly state that in the synthesis, and you should NEVER make up information and NEVER rely on external knowledge.
+`;
 
-## Research Context
-
-**Research Topic/Query:** "${query}"
-
-**Conversation History:**
-${formatMessageHistory(conversationHistory)}
-
-## Source Material
-
-**Source:** ${title}
-**URL:** ${url}
-**Initial Snippet:** ${snippet}
-
-**Full Content:**
-${scrapedContent}
-
-## Your Task
-
-Create a detailed synthesis of the above content that relates to the research topic "${query}". Focus on extracting and organizing information that would be valuable for answering the user's question in the context of their conversation history.`;
-
-  try {
-    const result = await generateText({
+    const { text } = await generateText({
       model: summarizerModel,
-      prompt,
-      experimental_telemetry: {
-        isEnabled: true,
-        functionId: "summarize-url",
-        metadata: {
-          langfuseTraceId,
-          url,
-          contentLength: scrapedContent.length,
-        },
-      },
+      prompt: prompt,
+      experimental_telemetry: langfuseTraceId
+        ? {
+            isEnabled: true,
+            functionId: "summarize-url",
+            metadata: {
+              langfuseTraceId,
+              url: searchMetadata.url,
+              query,
+            },
+          }
+        : undefined,
     });
 
-    return {
-      url,
-      title,
-      summary: result.text,
-    };
-  } catch (error) {
-    Sentry.captureException(error);
-
-    // Fall back to snippet if summarization fails
-    return {
-      url,
-      title,
-      summary: snippet,
-    };
-  }
-};
-
-/**
- * Cached version of summarizeURL to avoid expensive re-summarization
- */
-export const summarizeURL = cacheWithRedis("summarizeURL", _summarizeURL);
+    return text;
+  },
+);

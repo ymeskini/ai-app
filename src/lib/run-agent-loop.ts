@@ -105,20 +105,26 @@ export const searchAndScrape = async (
             result.scrapedContent.trim().length > 0
           ) {
             try {
-              const summary = await summarizeURL(
-                {
-                  query,
-                  url: result.url,
+              // todo fix this summary structure
+              const summary = await summarizeURL({
+                conversation: messages
+                  .map((message) => {
+                    const role = message.role === "user" ? "User" : "Assistant";
+                    return `<${role}>${message.content}</${role}>`;
+                  })
+                  .join("\n\n"),
+                scrapedContent: result.scrapedContent,
+                searchMetadata: {
+                  date: result.date,
                   title: result.title,
-                  snippet: result.snippet,
-                  scrapedContent: result.scrapedContent,
-                  conversationHistory: messages,
+                  url: result.url,
                 },
+                query,
                 langfuseTraceId,
-              );
+              });
               return {
                 ...result,
-                summary: summary.summary,
+                summary: summary,
               };
             } catch (error) {
               // If summarization fails, keep the original result
@@ -259,7 +265,7 @@ export const runAgentLoop = async (
             }
           } else if (nextAction.type === "answer") {
             span.setAttribute("agent.final_action", "answer");
-            return answerQuestion(ctx, userQuery, messages, {
+            return answerQuestion(ctx, {
               langfuseTraceId,
               onFinish,
             });
@@ -272,7 +278,7 @@ export const runAgentLoop = async (
         // If we've taken maxSteps actions and still don't have an answer,
         // we ask the LLM to give its best attempt at an answer
         span.setAttribute("agent.final_action", "max_steps_reached");
-        return answerQuestion(ctx, userQuery, messages, {
+        return answerQuestion(ctx, {
           isFinal: true,
           langfuseTraceId,
           onFinish,
