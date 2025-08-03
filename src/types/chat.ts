@@ -61,9 +61,6 @@ export function serializeAnnotation(
         ...(annotation.action.type === "search" && {
           query: annotation.action.query,
         }),
-        ...(annotation.action.type === "scrape" && {
-          urls: annotation.action.urls,
-        }),
       },
     };
   } else {

@@ -1,6 +1,20 @@
 import type { Message } from "ai";
 import { formatMessageHistory } from "./format-message-history";
 
+export type SearchResult = {
+  date: string;
+  title: string;
+  url: string;
+  snippet: string;
+  scrapedContent: string;
+};
+
+export type SearchHistoryEntry = {
+  query: string;
+  results: SearchResult[];
+};
+
+// Keep backward compatibility types
 export type QueryResultSearchResult = {
   date: string;
   title: string;
@@ -18,9 +32,6 @@ export type ScrapeResult = {
   result: string;
 };
 
-const toQueryResult = (query: QueryResultSearchResult) =>
-  [`### ${query.date} - ${query.title}`, query.url, query.snippet].join("\n\n");
-
 export class SystemContext {
   /**
    * The current step in the loop
@@ -28,14 +39,9 @@ export class SystemContext {
   private step = 0;
 
   /**
-   * The history of all queries searched
+   * The history of all search actions and their scraped content
    */
-  private queryHistory: QueryResult[] = [];
-
-  /**
-   * The history of all URLs scraped
-   */
-  private scrapeHistory: ScrapeResult[] = [];
+  private searchHistory: SearchHistoryEntry[] = [];
 
   /**
    * The user's location context
@@ -46,7 +52,7 @@ export class SystemContext {
    */
   private messages: Message[];
 
-  constructor(locationContext: string,  messages: Message[]) {
+  constructor(locationContext: string, messages: Message[]) {
     this.locationContext = locationContext;
     this.messages = messages;
   }
@@ -63,36 +69,63 @@ export class SystemContext {
     this.step++;
   }
 
+  reportSearch(search: SearchHistoryEntry) {
+    this.searchHistory.push(search);
+  }
+
+  // Backward compatibility methods - deprecated but kept for existing code
   reportQueries(queries: QueryResult[]) {
-    this.queryHistory.push(...queries);
+    // Convert old format to new format with empty scraped content
+    queries.forEach((query) => {
+      const searchEntry: SearchHistoryEntry = {
+        query: query.query,
+        results: query.results.map((result) => ({
+          ...result,
+          scrapedContent: "",
+        })),
+      };
+      this.searchHistory.push(searchEntry);
+    });
   }
 
   reportScrapes(scrapes: ScrapeResult[]) {
-    this.scrapeHistory.push(...scrapes);
+    // Find the most recent search entry and update its scraped content
+    if (this.searchHistory.length > 0) {
+      const lastSearch = this.searchHistory[this.searchHistory.length - 1];
+      scrapes.forEach((scrape) => {
+        const matchingResult = lastSearch!.results.find(
+          (result) => result.url === scrape.url,
+        );
+        if (matchingResult) {
+          matchingResult.scrapedContent = scrape.result;
+        }
+      });
+    }
   }
 
+  getSearchHistory(): string {
+    return this.searchHistory
+      .map((search) =>
+        [
+          `## Query: "${search.query}"`,
+          ...search.results.map((result) =>
+            [
+              `### ${result.date} - ${result.title}`,
+              result.url,
+              result.snippet,
+              `<scrape_result>`,
+              result.scrapedContent,
+              `</scrape_result>`,
+            ].join("\n\n"),
+          ),
+        ].join("\n\n"),
+      )
+      .join("\n\n");
+  }
+
+  // Backward compatibility method - deprecated but kept for existing code
   getQueryHistory(): string {
-    return this.queryHistory
-      .map((query) =>
-        [
-          `## Query: "${query.query}"`,
-          ...query.results.map(toQueryResult),
-        ].join("\n\n"),
-      )
-      .join("\n\n");
-  }
-
-  getScrapeHistory(): string {
-    return this.scrapeHistory
-      .map((scrape) =>
-        [
-          `## Scrape: "${scrape.url}"`,
-          `<scrape_result>`,
-          scrape.result,
-          `</scrape_result>`,
-        ].join("\n\n"),
-      )
-      .join("\n\n");
+    return this.getSearchHistory();
   }
 
   getMessagesHistory(): string {

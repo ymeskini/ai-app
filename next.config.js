@@ -23,7 +23,6 @@ const baseConfig = {
   },
 };
 
-
 // Injected content via Sentry wizard below
 
 const config = withSentryConfig(baseConfig, {

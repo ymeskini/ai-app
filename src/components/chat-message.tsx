@@ -1,7 +1,7 @@
 import ReactMarkdown, { type Components } from "react-markdown";
 import type { Message } from "ai";
 import { useState, useMemo } from "react";
-import { Search, Link, Loader2, CheckCircle, XCircle } from "lucide-react";
+import { Search, Loader2, CheckCircle, XCircle } from "lucide-react";
 import type { OurMessageAnnotation } from "~/lib/get-next-action";
 import { cn } from "~/lib/utils";
 
@@ -223,16 +223,6 @@ const ReasoningSteps = ({
                       <div className="mt-2 flex items-center gap-2 text-sm text-gray-400">
                         <Search className="size-4" />
                         <span>{step.action.query}</span>
-                      </div>
-                    )}
-                    {step.action.type === "scrape" && (
-                      <div className="mt-2 flex items-center gap-2 text-sm text-gray-400">
-                        <Link className="size-4" />
-                        <span>
-                          {step.action.urls
-                            ?.map((url) => new URL(url).hostname)
-                            ?.join(", ")}
-                        </span>
                       </div>
                     )}
                   </div>

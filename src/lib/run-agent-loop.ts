@@ -1,6 +1,6 @@
 import type { StreamTextResult, Message } from "ai";
 import { searchSerper } from "~/serper";
-import { bulkCrawlWebsitesWithJina, type CrawlResponse } from "~/lib/scraper";
+import { bulkCrawlWebsitesWithJina } from "~/lib/scraper";
 import {
   getNextAction,
   type OurMessageAnnotation,
@@ -8,70 +8,77 @@ import {
 import { answerQuestion } from "~/lib/answer-question";
 import {
   SystemContext,
-  type QueryResult,
+  type SearchHistoryEntry,
+  type SearchResult,
   type QueryResultSearchResult,
 } from "~/lib/system-context";
 import { env } from "~/env";
 import type { StreamTextFinishResult } from "~/types/chat";
 
 /**
- * Search the web using Serper API
+ * Combined search and scrape function that automatically scrapes the most relevant URLs
  */
-export const searchWeb = async (
+export const searchAndScrape = async (
   query: string,
   signal?: AbortSignal,
-): Promise<QueryResultSearchResult[]> => {
-  const results = await searchSerper(
+): Promise<SearchHistoryEntry> => {
+  // First, search for results
+  const searchResults = await searchSerper(
     { q: query, num: env.SEARCH_RESULTS_COUNT },
     signal,
   );
 
-  return results.organic.map((result): QueryResultSearchResult => {
-    return {
-      title: result.title,
-      url: result.link,
-      snippet: result.snippet,
-      date: (result.date ?? new Date().toISOString().split("T")[0])!,
-    };
-  });
-};
+  const initialResults: QueryResultSearchResult[] = searchResults.organic.map(
+    (result): QueryResultSearchResult => {
+      return {
+        title: result.title,
+        url: result.link,
+        snippet: result.snippet,
+        date: (result.date ?? new Date().toISOString().split("T")[0])!,
+      };
+    },
+  );
 
-/**
- * Scrape URLs using Jina scraper
- */
-export const scrapeUrl = async (urls: string[]) => {
-  const results = await bulkCrawlWebsitesWithJina({
-    urls,
+  // Extract URLs to scrape (up to the number of search results we have)
+  const urlsToScrape = initialResults.map((result) => result.url);
+
+  // Scrape all the URLs
+  const scrapeResults = await bulkCrawlWebsitesWithJina({
+    urls: urlsToScrape,
     maxRetries: 3,
   });
 
-  const processResult = (result: { url: string; result: CrawlResponse }) => {
-    if (result.result.success) {
-      return {
-        url: result.url,
-        success: true,
-        content: result.result.data,
-        error: undefined,
-      };
-    } else {
-      return {
-        url: result.url,
-        success: false,
-        content: undefined,
-        error: result.result.error,
-      };
-    }
-  };
+  // Process scrape results
+  const processedScrapeResults: Record<string, string> = {};
 
-  if (results.success) {
-    return results.results.map(processResult);
+  if (scrapeResults.success) {
+    scrapeResults.results.forEach((result) => {
+      if (result.result.success) {
+        processedScrapeResults[result.url] = result.result.data;
+      }
+    });
   } else {
-    return {
-      success: false,
-      error: results.error,
-      results: results.results.map(processResult),
-    };
+    // Handle partial failures
+    scrapeResults.results.forEach((result) => {
+      if (result.result.success) {
+        processedScrapeResults[result.url] = result.result.data;
+      }
+    });
   }
+
+  // Combine search results with scraped content
+  const combinedResults: SearchResult[] = initialResults.map((result) => ({
+    date: result.date,
+    title: result.title,
+    url: result.url,
+    snippet: result.snippet,
+    scrapedContent: processedScrapeResults[result.url] ?? "",
+  }));
+
+  return {
+    query,
+    results: combinedResults,
+  };
 };
 
 /**
@@ -92,11 +99,7 @@ export const runAgentLoop = async (
   // A loop that continues until we have an answer or we've taken maxSteps actions
   while (ctx.getStep() < maxSteps) {
     // We choose the next action based on the state of our system
-    const nextAction = await getNextAction(
-      ctx,
-      userQuery,
-      langfuseTraceId,
-    );
+    const nextAction = await getNextAction(ctx, userQuery, langfuseTraceId);
 
     // Send annotation about the action we chose
     const stepIndex = ctx.getStep();
@@ -119,20 +122,10 @@ export const runAgentLoop = async (
       }
 
       try {
-        const searchResults = await searchWeb(nextAction.query);
+        const searchHistoryEntry = await searchAndScrape(nextAction.query);
 
-        // Convert search results to the format expected by SystemContext
-        const queryResult: QueryResult = {
-          query: nextAction.query,
-          results: searchResults.map((result) => ({
-            date: result.date,
-            title: result.title,
-            url: result.url,
-            snippet: result.snippet,
-          })),
-        };
-
-        ctx.reportQueries([queryResult]);
+        // Report the combined search and scrape results
+        ctx.reportSearch(searchHistoryEntry);
 
         // Update status to completed
         if (writeMessageAnnotation) {
@@ -150,62 +143,6 @@ export const runAgentLoop = async (
             stepIndex,
             status: "error",
             error: error instanceof Error ? error.message : "Search failed",
-          });
-        }
-        throw error;
-      }
-    } else if (nextAction.type === "scrape") {
-      // Update status to loading
-      if (writeMessageAnnotation) {
-        writeMessageAnnotation({
-          type: "ACTION_UPDATE",
-          stepIndex,
-          status: "loading",
-        });
-      }
-
-      try {
-        const scrapeResults = await scrapeUrl(nextAction.urls);
-
-        // Handle the case where scrapeResults might have an error
-        if ("success" in scrapeResults && !scrapeResults.success) {
-          // If bulk scraping failed, still try to report what we got
-          const scrapeData = scrapeResults.results
-            .filter((result) => result.success && result.content)
-            .map((result) => ({
-              url: result.url,
-              result: result.content!,
-            }));
-
-          ctx.reportScrapes(scrapeData);
-        } else if (Array.isArray(scrapeResults)) {
-          // Filter successful scrapes and report them
-          const scrapeData = scrapeResults
-            .filter((result) => result.success && result.content)
-            .map((result) => ({
-              url: result.url,
-              result: result.content!,
-            }));
-
-          ctx.reportScrapes(scrapeData);
-        }
-
-        // Update status to completed
-        if (writeMessageAnnotation) {
-          writeMessageAnnotation({
-            type: "ACTION_UPDATE",
-            stepIndex,
-            status: "completed",
-          });
-        }
-      } catch (error) {
-        // Update status to error
-        if (writeMessageAnnotation) {
-          writeMessageAnnotation({
-            type: "ACTION_UPDATE",
-            stepIndex,
-            status: "error",
-            error: error instanceof Error ? error.message : "Scraping failed",
           });
         }
         throw error;

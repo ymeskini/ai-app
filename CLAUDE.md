@@ -9,7 +9,7 @@ This is a Next.js 15 AI chat application with real-time messaging, authenticatio
 - **Styling**: Tailwind CSS with CSS variables, shadcn/ui components, context7 id: `/shadcn-ui/ui`
 - **Database**: PostgreSQL (with pgvector) with Drizzle ORM, context7 id: `/drizzle-team/drizzle-orm-docs`
 - **Authentication**: NextAuth.js (v5) with Discord provider, context7 id: `/nextauthjs/next-auth`
-- **AI**: AI SDK, using gemini-2.0-flash-001, context7 id: `/vercel/ai`
+- **AI**: AI SDK V4, using gemini-2.0-flash-001, context7 id: `/vercel/ai`
 - **Caching**: Redis for rate limiting with ioredis, context7 id: `/redis/ioredis`
 - **Observability**: OpenTelemetry instrumentation with langfuse, context7 id: `langfuse_com-docs`
 - **Testing**: Evalite for LLM evaluations, context7 id: `/mattpocock/evalite`

@@ -21,7 +21,7 @@ export const env = createEnv({
         : z.string().optional(),
     ALLOWED_USER: z.string(),
     SERPER_API_KEY: z.string(),
-    SEARCH_RESULTS_COUNT: z.coerce.number().default(10),
+    SEARCH_RESULTS_COUNT: z.coerce.number().default(3),
     LANGFUSE_SECRET_KEY: z.string(),
     LANGFUSE_PUBLIC_KEY: z.string(),
     LANGFUSE_BASEURL: z.string().url(),

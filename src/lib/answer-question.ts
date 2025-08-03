@@ -64,13 +64,9 @@ ${formatMessageHistory(messages)}
 
 "${userQuery}"
 
-## SEARCH HISTORY
+## SEARCH HISTORY (includes search results and scraped content)
 
-${context.getQueryHistory()}
-
-## SCRAPED CONTENT
-
-${context.getScrapeHistory()}
+${context.getSearchHistory()}
 
 ## YOUR RESPONSE
 
