@@ -1,7 +1,7 @@
 import type { StreamTextResult, Message } from "ai";
 import * as Sentry from "@sentry/nextjs";
 import { searchSerper } from "~/serper";
-import { bulkCrawlWebsitesWithJina } from "~/lib/scraper";
+import { bulkCrawlWebsites } from "~/lib/scraper";
 import {
   getNextAction,
   type OurMessageAnnotation,
@@ -43,23 +43,22 @@ export const searchAndScrape = async (
           signal,
         );
 
-        const initialResults: QueryResultSearchResult[] = searchResults.organic.map(
-          (result): QueryResultSearchResult => {
+        const initialResults: QueryResultSearchResult[] =
+          searchResults.organic.map((result): QueryResultSearchResult => {
             return {
               title: result.title,
               url: result.link,
               snippet: result.snippet,
               date: (result.date ?? new Date().toISOString().split("T")[0])!,
             };
-          },
-        );
+          });
 
         // Extract URLs to scrape (up to the number of search results we have)
         const urlsToScrape = initialResults.map((result) => result.url);
         span.setAttribute("scrape.urls_count", urlsToScrape.length);
 
         // Scrape all the URLs
-        const scrapeResults = await bulkCrawlWebsitesWithJina({
+        const scrapeResults = await bulkCrawlWebsites({
           urls: urlsToScrape,
           maxRetries: 3,
         });
@@ -82,21 +81,29 @@ export const searchAndScrape = async (
           });
         }
 
-        span.setAttribute("scrape.successful_count", Object.keys(processedScrapeResults).length);
+        span.setAttribute(
+          "scrape.successful_count",
+          Object.keys(processedScrapeResults).length,
+        );
 
         // Combine search results with scraped content
-        const combinedResults: SearchResult[] = initialResults.map((result) => ({
-          date: result.date,
-          title: result.title,
-          url: result.url,
-          snippet: result.snippet,
-          scrapedContent: processedScrapeResults[result.url] ?? "",
-        }));
+        const combinedResults: SearchResult[] = initialResults.map(
+          (result) => ({
+            date: result.date,
+            title: result.title,
+            url: result.url,
+            snippet: result.snippet,
+            scrapedContent: processedScrapeResults[result.url] ?? "",
+          }),
+        );
 
         // Summarize all URLs in parallel
         const summaryPromises = combinedResults.map(async (result) => {
           // Only summarize if we have scraped content
-          if (result.scrapedContent && result.scrapedContent.trim().length > 0) {
+          if (
+            result.scrapedContent &&
+            result.scrapedContent.trim().length > 0
+          ) {
             try {
               const summary = await summarizeURL(
                 {
@@ -183,7 +190,11 @@ export const runAgentLoop = async (
           span.setAttribute("agent.current_step", ctx.getStep());
 
           // We choose the next action based on the state of our system
-          const nextAction = await getNextAction(ctx, userQuery, langfuseTraceId);
+          const nextAction = await getNextAction(
+            ctx,
+            userQuery,
+            langfuseTraceId,
+          );
 
           // Send annotation about the action we chose
           const stepIndex = ctx.getStep();
@@ -230,7 +241,8 @@ export const runAgentLoop = async (
                   type: "ACTION_UPDATE",
                   stepIndex,
                   status: "error",
-                  error: error instanceof Error ? error.message : "Search failed",
+                  error:
+                    error instanceof Error ? error.message : "Search failed",
                 });
               }
               Sentry.captureException(error, {

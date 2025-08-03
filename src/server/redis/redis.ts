@@ -1,6 +1,7 @@
 import { env } from "~/env";
 import Redis from "ioredis";
 import { eq } from "drizzle-orm";
+import { createHash } from "node:crypto";
 
 import { db } from "~/server/db";
 import { users } from "~/server/db/schema";
@@ -10,12 +11,31 @@ export const redis = new Redis(env.REDIS_URL);
 const CACHE_EXPIRY_SECONDS = 60 * 60 * 6; // 6 hours
 const CACHE_KEY_SEPARATOR = ":";
 
+/**
+ * Generate a clean, short cache key using a hash of the arguments
+ */
+const generateCacheKey = (
+  keyPrefix: string,
+  args: readonly unknown[],
+): string => {
+  // Create a deterministic string representation of the arguments
+  const argsString = JSON.stringify(args);
+
+  // Generate a short hash of the arguments
+  const hash = createHash("sha256")
+    .update(argsString)
+    .digest("hex")
+    .substring(0, 12); // Use first 12 characters for brevity
+
+  return `${keyPrefix}${CACHE_KEY_SEPARATOR}${hash}`;
+};
+
 export const cacheWithRedis = <TArgs extends readonly unknown[], TResult>(
   keyPrefix: string,
   fn: (...args: TArgs) => Promise<TResult>,
 ): ((...args: TArgs) => Promise<TResult>) => {
   return async (...args: TArgs): Promise<TResult> => {
-    const key = `${keyPrefix}${CACHE_KEY_SEPARATOR}${JSON.stringify(args)}`;
+    const key = generateCacheKey(keyPrefix, args);
     const cachedResult = await redis.get(key);
     if (cachedResult) {
       return JSON.parse(cachedResult) as TResult;

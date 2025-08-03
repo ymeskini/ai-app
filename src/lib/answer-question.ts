@@ -83,7 +83,10 @@ Provide a comprehensive answer to the user's question based on the information a
       span.setAttribute("user.query", userQuery);
       span.setAttribute("langfuse.trace_id", langfuseTraceId);
       span.setAttribute("is_final", isFinal);
-      span.setAttribute("search.history_count", context.getSearchHistory().length);
+      span.setAttribute(
+        "search.history_count",
+        context.getSearchHistory().length,
+      );
 
       return streamText({
         model,
