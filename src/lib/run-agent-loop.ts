@@ -14,12 +14,15 @@ import {
 } from "~/lib/system-context";
 import { env } from "~/env";
 import type { StreamTextFinishResult } from "~/types/chat";
+import { summarizeURL } from "~/lib/summarize-url";
 
 /**
  * Combined search and scrape function that automatically scrapes the most relevant URLs
  */
 export const searchAndScrape = async (
   query: string,
+  messages: Message[],
+  langfuseTraceId: string,
   signal?: AbortSignal,
 ): Promise<SearchHistoryEntry> => {
   // First, search for results
@@ -75,9 +78,40 @@ export const searchAndScrape = async (
     scrapedContent: processedScrapeResults[result.url] ?? "",
   }));
 
+  // Summarize all URLs in parallel
+  const summaryPromises = combinedResults.map(async (result) => {
+    // Only summarize if we have scraped content
+    if (result.scrapedContent && result.scrapedContent.trim().length > 0) {
+      try {
+        const summary = await summarizeURL(
+          {
+            query,
+            url: result.url,
+            title: result.title,
+            snippet: result.snippet,
+            scrapedContent: result.scrapedContent,
+            conversationHistory: messages,
+          },
+          langfuseTraceId,
+        );
+        return {
+          ...result,
+          summary: summary.summary,
+        };
+      } catch (error) {
+        // If summarization fails, keep the original result
+        console.error(`Failed to summarize ${result.url}:`, error);
+        return result;
+      }
+    }
+    return result;
+  });
+
+  const resultsWithSummaries = await Promise.all(summaryPromises);
+
   return {
     query,
-    results: combinedResults,
+    results: resultsWithSummaries,
   };
 };
 
@@ -122,7 +156,11 @@ export const runAgentLoop = async (
       }
 
       try {
-        const searchHistoryEntry = await searchAndScrape(nextAction.query);
+        const searchHistoryEntry = await searchAndScrape(
+          nextAction.query,
+          messages,
+          langfuseTraceId,
+        );
 
         // Report the combined search and scrape results
         ctx.reportSearch(searchHistoryEntry);

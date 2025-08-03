@@ -13,15 +13,12 @@ export async function register() {
     await import("./sentry.edge.config");
   }
 
-  // Initialize OpenTelemetry only in Node.js runtime
-  if (process.env.NEXT_RUNTIME === "nodejs") {
-    registerOTel({
-      serviceName: "ai-app-ym",
-      traceExporter: new LangfuseExporter({
-        environment: env.NODE_ENV,
-      }),
-    });
-  }
+  registerOTel({
+    serviceName: "ai-app-ym",
+    traceExporter: new LangfuseExporter({
+      environment: env.NODE_ENV,
+    }),
+  });
 }
 
 export const onRequestError = Sentry.captureRequestError;

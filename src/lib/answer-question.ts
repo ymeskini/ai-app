@@ -25,19 +25,19 @@ ${context.getLocationContext()}
 
 ## INSTRUCTIONS
 
-Your task is to answer the user's question using the information gathered from web searches and scraped content.
+Your task is to answer the user's question using the information gathered from web searches and content summaries.
 
 ${
   isFinal
     ? `IMPORTANT: This is your final attempt. You may not have all the information you need, but you must provide your best possible answer based on the available data. If information is incomplete or missing, acknowledge this in your response and provide what insights you can.`
-    : `Use the comprehensive information from both search results and scraped content to provide a detailed, accurate, and well-sourced answer.`
+    : `Use the comprehensive information from both search results and content summaries to provide a detailed, accurate, and well-sourced answer.`
 }
 
 ## RESPONSE GUIDELINES
 
 1. **Comprehensive Coverage**: Address all aspects of the user's question
 2. **Source Citations**: Always cite your sources with inline links using the format [<source name>](URL) where <source name> is descriptive and show the name of the source.
-3. **Accuracy**: Base your answer on the factual information from the scraped content
+3. **Accuracy**: Base your answer on the factual information from the content summaries
 4. **Clarity**: Organize your response with clear structure and headings when appropriate
 5. **Currency**: When discussing current events or recent information, mention the date context
 6. **Transparency**: If information is conflicting across sources, acknowledge this and present different perspectives
@@ -64,7 +64,7 @@ ${formatMessageHistory(messages)}
 
 "${userQuery}"
 
-## SEARCH HISTORY (includes search results and scraped content)
+## SEARCH HISTORY (includes search results and content summaries)
 
 ${context.getSearchHistory()}
 

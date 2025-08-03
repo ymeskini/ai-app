@@ -85,7 +85,7 @@ When users ask for "current", "latest", "recent", or "up-to-date" information, y
 The search action will automatically:
 - Search for relevant web pages
 - Scrape the most relevant URLs to get detailed content
-- Provide both search snippets and full scraped content
+- Provide both search snippets and summarized content
 
 Decision-making process:
 1. If you haven't searched yet and need current/web information → choose "search"
@@ -98,7 +98,7 @@ ${context.getMessagesHistory()}
 
 Current User's Question: "${userQuery}"
 
-Search History (includes both search results and scraped content):
+Search History (includes both search results and content summaries):
 ${context.getSearchHistory()}
 
 ## DECISION CRITERIA
@@ -106,7 +106,7 @@ ${context.getSearchHistory()}
 Based on the context above, determine the next action:
 
 - If there's no search history and the question requires web information → "search"
-- If you have search results with scraped content that sufficiently answers the question → "answer"
+- If you have search results with content summaries that sufficiently answer the question → "answer"
 - If existing information is insufficient and you need more specific data → "search" (with a refined query)
 
 Provide your decision with the appropriate parameters.
