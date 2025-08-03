@@ -1,4 +1,5 @@
 import { streamText, type Message } from "ai";
+import * as Sentry from "@sentry/nextjs";
 import { model } from "~/lib/model";
 import type { SystemContext } from "~/lib/system-context";
 import { formatMessageHistory } from "~/lib/format-message-history";
@@ -73,16 +74,38 @@ ${context.getSearchHistory()}
 Provide a comprehensive answer to the user's question based on the information above.
 `.trim();
 
-  return streamText({
-    model,
-    prompt: systemPrompt,
-    onFinish,
-    experimental_telemetry: {
-      isEnabled: true,
-      functionId: isFinal ? "answer-question-final" : "answer-question",
-      metadata: {
-        langfuseTraceId: langfuseTraceId,
-      },
+  return Sentry.startSpan(
+    {
+      op: "ai.answer_question",
+      name: isFinal ? "Answer Question (Final)" : "Answer Question",
     },
-  });
+    (span) => {
+      span.setAttribute("user.query", userQuery);
+      span.setAttribute("langfuse.trace_id", langfuseTraceId);
+      span.setAttribute("is_final", isFinal);
+      span.setAttribute("search.history_count", context.getSearchHistory().length);
+
+      return streamText({
+        model,
+        prompt: systemPrompt,
+        onFinish: (result) => {
+          try {
+            span.setAttribute("response.text_length", result.text.length);
+            span.setAttribute("response.finish_reason", result.finishReason);
+            onFinish(result);
+          } catch (error) {
+            Sentry.captureException(error);
+            throw error;
+          }
+        },
+        experimental_telemetry: {
+          isEnabled: true,
+          functionId: isFinal ? "answer-question-final" : "answer-question",
+          metadata: {
+            langfuseTraceId: langfuseTraceId,
+          },
+        },
+      });
+    },
+  );
 };

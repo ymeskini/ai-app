@@ -1,5 +1,6 @@
 import { generateText } from "ai";
 import type { Message } from "ai";
+import * as Sentry from "@sentry/nextjs";
 import { model } from "./model";
 
 export const generateChatTitle = async (
@@ -23,6 +24,14 @@ export const generateChatTitle = async (
     return text.trim();
   } catch (error) {
     console.error("Failed to generate chat title:", error);
+    Sentry.captureException(error, {
+      contexts: {
+        chat_title_generation: {
+          messages_count: messages.length,
+          first_message_preview: messages[0]?.content?.toString().slice(0, 100),
+        },
+      },
+    });
     // Fallback to the first message
     const firstMessage = messages[0];
     if (firstMessage?.content) {
