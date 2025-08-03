@@ -13,12 +13,15 @@ export async function register() {
     await import("./sentry.edge.config");
   }
 
-  registerOTel({
-    serviceName: "ai-app-ym",
-    traceExporter: new LangfuseExporter({
-      environment: env.NODE_ENV,
-    }),
-  });
+  // Only register OTel if Langfuse is enabled
+  if (env.ENABLE_LANGFUSE) {
+    registerOTel({
+      serviceName: "ai-app-ym",
+      traceExporter: new LangfuseExporter({
+        environment: env.NODE_ENV,
+      }),
+    });
+  }
 }
 
 export const onRequestError = Sentry.captureRequestError;

@@ -5,6 +5,8 @@ Sentry.init({
   tracesSampleRate: 1.0,
   // Edge runtime has limited features compared to Node.js
   debug: false,
+  // Prevent Sentry from setting up its own OpenTelemetry to avoid conflicts with Langfuse
+  skipOpenTelemetrySetup: true,
   // Edge-specific configuration
   integrations: [
     // Add edge-specific integrations here if needed

@@ -5,6 +5,8 @@ Sentry.init({
   tracesSampleRate: 1.0,
   enableLogs: true,
   debug: false,
+  // Prevent Sentry from setting up its own OpenTelemetry to avoid conflicts with Langfuse
+  skipOpenTelemetrySetup: true,
   // Server-specific configuration
   integrations: [
     // Add server-specific integrations here if needed

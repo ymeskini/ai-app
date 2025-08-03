@@ -27,6 +27,9 @@ export const env = createEnv({
     LANGFUSE_BASEURL: z.string().url(),
     JINA_API_KEY: z.string(),
     EVAL_DATASET: z.enum(["dev", "ci", "regression"]).default("dev"),
+    // Telemetry controls
+    ENABLE_SENTRY_OTEL: z.coerce.boolean().default(false),
+    ENABLE_LANGFUSE: z.coerce.boolean().default(true),
   },
 
   /**
@@ -56,6 +59,8 @@ export const env = createEnv({
     LANGFUSE_BASEURL: process.env.LANGFUSE_BASEURL,
     JINA_API_KEY: process.env.JINA_API_KEY,
     EVAL_DATASET: process.env.EVAL_DATASET,
+    ENABLE_SENTRY_OTEL: process.env.ENABLE_SENTRY_OTEL,
+    ENABLE_LANGFUSE: process.env.ENABLE_LANGFUSE,
   },
   /**
    * Run `build` or `dev` with `SKIP_ENV_VALIDATION` to skip env validation. This is especially
