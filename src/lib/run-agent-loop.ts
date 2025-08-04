@@ -172,7 +172,7 @@ export const runAgentLoop = async (
   userQuery: string,
   messages: Message[],
   locationContext: string,
-  maxSteps = 10,
+  maxSteps = 3,
   writeMessageAnnotation: (annotation: OurMessageAnnotation) => void,
   langfuseTraceId: string,
   onFinish: (finishResult: StreamTextFinishResult) => void,

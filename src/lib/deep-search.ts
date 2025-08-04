@@ -30,7 +30,7 @@ export const streamFromDeepSearch = async (opts: {
     queryString,
     opts.messages,
     opts.locationContext,
-    10,
+    3,
     opts.writeMessageAnnotation,
     langfuseTraceId,
     opts.onFinish,

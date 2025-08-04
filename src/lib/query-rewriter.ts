@@ -3,11 +3,6 @@ import { z } from "zod";
 import { model } from "~/lib/model";
 import type { SystemContext } from "~/lib/system-context";
 
-// Query rewriter result type
-export interface QueryRewriterResult {
-  plan: string;
-  queries: string[];
-}
 
 // Zod schema for structured output
 export const queryRewriterSchema = z.object({
@@ -24,6 +19,8 @@ export const queryRewriterSchema = z.object({
       "A numbered list of 3-5 sequential search queries that are specific, focused, and build upon each other. Write in natural language without Boolean operators.",
     ),
 });
+
+type QueryRewriterResult = z.infer<typeof queryRewriterSchema>;
 
 export const queryRewriter = async (
   context: SystemContext,
@@ -88,7 +85,7 @@ Provide both a detailed plan and the specific queries to execute.
   });
 
   // Type assertion to ensure we return the correct type
-  const queryResult = result.object as QueryRewriterResult;
+  const queryResult = result.object;
 
   // Validate that we have the required fields
   if (!queryResult.plan) {
