@@ -34,13 +34,28 @@ export type SerializableMessageAnnotation =
         type: string;
         title: string;
         reasoning: string;
-        query?: string;
-        urls?: string[];
       };
     }
   | {
       type: "ACTION_UPDATE";
       stepIndex: number;
+      status: "loading" | "completed" | "error";
+      error?: string;
+    }
+  | {
+      type: "PLANNING";
+      title: string;
+      reasoning: string;
+    }
+  | {
+      type: "QUERIES_GENERATED";
+      plan: string;
+      queries: string[];
+    }
+  | {
+      type: "SEARCH_UPDATE";
+      queryIndex: number;
+      query: string;
       status: "loading" | "completed" | "error";
       error?: string;
     };
@@ -58,17 +73,37 @@ export function serializeAnnotation(
         type: annotation.action.type,
         title: annotation.action.title,
         reasoning: annotation.action.reasoning,
-        ...(annotation.action.type === "search" && {
-          query: annotation.action.query,
-        }),
       },
     };
-  } else {
+  } else if (annotation.type === "ACTION_UPDATE") {
     return {
       type: annotation.type,
       stepIndex: annotation.stepIndex,
       status: annotation.status,
       error: annotation.error,
     };
+  } else if (annotation.type === "PLANNING") {
+    return {
+      type: annotation.type,
+      title: annotation.title,
+      reasoning: annotation.reasoning,
+    };
+  } else if (annotation.type === "QUERIES_GENERATED") {
+    return {
+      type: annotation.type,
+      plan: annotation.plan,
+      queries: annotation.queries,
+    };
+  } else if (annotation.type === "SEARCH_UPDATE") {
+    return {
+      type: annotation.type,
+      queryIndex: annotation.queryIndex,
+      query: annotation.query,
+      status: annotation.status,
+      error: annotation.error,
+    };
+  } else {
+    // This should never happen with proper typing, but provides a fallback
+    throw new Error(`Unknown annotation type`);
   }
 }

@@ -4,9 +4,8 @@ import { model } from "~/lib/model";
 import type { SystemContext } from "~/lib/system-context";
 
 // Action types
-export interface SearchAction {
-  type: "search";
-  query: string;
+export interface ContinueAction {
+  type: "continue";
   title: string;
   reasoning: string;
 }
@@ -17,7 +16,7 @@ export interface AnswerAction {
   reasoning: string;
 }
 
-export type Action = SearchAction | AnswerAction;
+export type Action = ContinueAction | AnswerAction;
 
 // Message annotation type for progress tracking
 export type OurMessageAnnotation =
@@ -30,6 +29,23 @@ export type OurMessageAnnotation =
       stepIndex: number;
       status: "loading" | "completed" | "error";
       error?: string;
+    }
+  | {
+      type: "PLANNING";
+      title: string;
+      reasoning: string;
+    }
+  | {
+      type: "QUERIES_GENERATED";
+      plan: string;
+      queries: string[];
+    }
+  | {
+      type: "SEARCH_UPDATE";
+      queryIndex: number;
+      query: string;
+      status: "loading" | "completed" | "error";
+      error?: string;
     };
 
 // Zod schema for structured output
@@ -37,18 +53,14 @@ export const actionSchema = z.object({
   title: z
     .string()
     .describe(
-      "The title of the action, to be displayed in the UI. Be extremely concise. 'Searching Saka's injury history', 'Checking HMRC industrial action', 'Comparing toaster ovens'",
+      "The title of the action, to be displayed in the UI. Be extremely concise. 'Need more information', 'Finalizing answer'",
     ),
   reasoning: z.string().describe("The reason you chose this step."),
-  type: z.enum(["search", "answer"]).describe(
+  type: z.enum(["continue", "answer"]).describe(
     `The type of action to take.
-      - 'search': Search the web for more information and scrape the most relevant URLs.
+      - 'continue': Continue searching for more information to answer the question.
       - 'answer': Answer the user's question and complete the loop.`,
   ),
-  query: z
-    .string()
-    .describe("The query to search for. Required if type is 'search'.")
-    .optional(),
 });
 
 export const getNextAction = async (
@@ -67,30 +79,17 @@ export const getNextAction = async (
       },
     },
     prompt: `
-You are a helpful AI assistant that can search the web or answer the user's question.
+You are a helpful AI assistant that determines whether to continue searching or provide an answer.
 
 Current date and time: ${new Date().toLocaleString()}
 
 ${context.getLocationContext()}
 
-## PLANNING INSTRUCTIONS
-Your goal is to determine the next action to take in order to answer the user's question effectively. You have two options:
+## DECISION MAKING
+Your goal is to determine whether we need to continue searching for more information or if we have enough to answer the user's question. You have two options:
 
-1. **search** - Search the web for information and automatically scrape the most relevant URLs to get detailed content
-2. **answer** - Answer the user's question and complete the loop
-
-## RESEARCH WORKFLOW
-When users ask for "current", "latest", "recent", or "up-to-date" information, you should search first.
-
-The search action will automatically:
-- Search for relevant web pages
-- Scrape the most relevant URLs to get detailed content
-- Provide both search snippets and summarized content
-
-Decision-making process:
-1. If you haven't searched yet and need current/web information → choose "search"
-2. If you have sufficient information from previous searches → choose "answer"
-3. If existing information is insufficient and you need more specific data → choose "search" (with a refined query)
+1. **continue** - We need more information to properly answer the question
+2. **answer** - We have sufficient information to provide a comprehensive answer
 
 ## CONTEXT ANALYSIS
 
@@ -105,11 +104,12 @@ ${context.getSearchHistory()}
 
 Based on the context above, determine the next action:
 
-- If there's no search history and the question requires web information → "search"
+- If there's no search history and the question requires web information → "continue"
 - If you have search results with content summaries that sufficiently answer the question → "answer"
-- If existing information is insufficient and you need more specific data → "search" (with a refined query)
+- If existing information is insufficient or outdated → "continue"
+- If you have comprehensive, relevant information → "answer"
 
-Provide your decision with the appropriate parameters.
+Provide your decision with a clear title and reasoning.
     `,
   });
 
@@ -125,10 +125,7 @@ Provide your decision with the appropriate parameters.
     throw new Error("Reasoning is required for all actions");
   }
 
-  // Validate that required fields are present based on action type
-  if (action.type === "search" && !action.query) {
-    throw new Error("Query is required for search action");
-  }
+  // No additional validation needed for continue/answer actions
 
   return action;
 };

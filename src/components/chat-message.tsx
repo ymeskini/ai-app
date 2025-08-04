@@ -1,7 +1,14 @@
 import ReactMarkdown, { type Components } from "react-markdown";
 import type { Message } from "ai";
 import { useState, useMemo } from "react";
-import { Search, Loader2, CheckCircle, XCircle } from "lucide-react";
+import {
+  Search,
+  Loader2,
+  CheckCircle,
+  XCircle,
+  Brain,
+  ListChecks,
+} from "lucide-react";
 import type { OurMessageAnnotation } from "~/lib/get-next-action";
 import { cn } from "~/lib/utils";
 
@@ -116,15 +123,25 @@ const ReasoningSteps = ({
   // Process annotations to build step states
   const stepStates = useMemo(() => {
     const steps: Array<{
-      action: Extract<OurMessageAnnotation, { type: "NEW_ACTION" }>["action"];
+      action?: Extract<OurMessageAnnotation, { type: "NEW_ACTION" }>["action"];
       status: "pending" | "loading" | "completed" | "error";
       error?: string;
+      type: "action" | "planning" | "queries" | "search";
+      title: string;
+      reasoning?: string;
+      plan?: string;
+      queries?: string[];
+      query?: string;
+      queryIndex?: number;
     }> = [];
 
     annotations.forEach((annotation) => {
       if (annotation.type === "NEW_ACTION") {
         steps.push({
+          type: "action",
           action: annotation.action,
+          title: annotation.action.title,
+          reasoning: annotation.action.reasoning,
           status: "pending",
         });
       } else if (annotation.type === "ACTION_UPDATE") {
@@ -133,6 +150,47 @@ const ReasoningSteps = ({
           step.status = annotation.status;
           step.error = annotation.error;
         }
+      } else if (annotation.type === "PLANNING") {
+        steps.push({
+          type: "planning",
+          title: annotation.title,
+          reasoning: annotation.reasoning,
+          status: "loading",
+        });
+      } else if (annotation.type === "QUERIES_GENERATED") {
+        // Update the planning step to completed and add queries step
+        const planningStep = steps.find((step) => step.type === "planning");
+        if (planningStep) {
+          planningStep.status = "completed";
+        }
+
+        steps.push({
+          type: "queries",
+          title: `Generated ${annotation.queries.length} search queries`,
+          plan: annotation.plan,
+          queries: annotation.queries,
+          status: "completed",
+        });
+      } else if (annotation.type === "SEARCH_UPDATE") {
+        // Find or create search step for this query
+        let searchStep = steps.find(
+          (step) =>
+            step.type === "search" && step.queryIndex === annotation.queryIndex,
+        );
+
+        if (!searchStep) {
+          searchStep = {
+            type: "search",
+            title: `Query ${annotation.queryIndex + 1}: ${annotation.query}`,
+            query: annotation.query,
+            queryIndex: annotation.queryIndex,
+            status: "pending",
+          };
+          steps.push(searchStep);
+        }
+
+        searchStep.status = annotation.status;
+        searchStep.error = annotation.error;
       }
     });
 
@@ -206,23 +264,48 @@ const ReasoningSteps = ({
                     index + 1
                   )}
                 </span>
-                <span className="flex-1">{step.action.title}</span>
+                <span className="flex-1">{step.title}</span>
+                {step.type === "planning" && <Brain className="ml-2 size-4" />}
+                {step.type === "queries" && (
+                  <ListChecks className="ml-2 size-4" />
+                )}
+                {step.type === "search" && <Search className="ml-2 size-4" />}
               </button>
               <div className={`${isOpen ? "mt-1" : "hidden"}`}>
                 {isOpen && (
                   <div className="px-2 py-1">
-                    <div className="text-sm text-gray-400 italic">
-                      <Markdown>{step.action.reasoning}</Markdown>
-                    </div>
+                    {step.reasoning && (
+                      <div className="text-sm text-gray-400 italic">
+                        <Markdown>{step.reasoning}</Markdown>
+                      </div>
+                    )}
+                    {step.plan && (
+                      <div className="mt-2 text-sm text-gray-300">
+                        <div className="mb-1 font-semibold">Research Plan:</div>
+                        <Markdown>{step.plan}</Markdown>
+                      </div>
+                    )}
+                    {step.queries && (
+                      <div className="mt-2">
+                        <div className="mb-1 text-sm font-semibold text-gray-300">
+                          Search Queries:
+                        </div>
+                        <ol className="list-inside list-decimal space-y-1 text-sm text-gray-400">
+                          {step.queries.map((query, index) => (
+                            <li key={index}>{query}</li>
+                          ))}
+                        </ol>
+                      </div>
+                    )}
                     {step.error && (
                       <div className="mt-2 text-sm text-red-400">
                         Error: {step.error}
                       </div>
                     )}
-                    {step.action.type === "search" && (
+                    {step.query && step.type === "search" && (
                       <div className="mt-2 flex items-center gap-2 text-sm text-gray-400">
                         <Search className="size-4" />
-                        <span>{step.action.query}</span>
+                        <span>{step.query}</span>
                       </div>
                     )}
                   </div>

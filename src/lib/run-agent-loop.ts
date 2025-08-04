@@ -6,6 +6,7 @@ import {
   getNextAction,
   type OurMessageAnnotation,
 } from "~/lib/get-next-action";
+import { queryRewriter } from "~/lib/query-rewriter";
 import { answerQuestion } from "~/lib/answer-question";
 import {
   SystemContext,
@@ -195,44 +196,127 @@ export const runAgentLoop = async (
         while (ctx.getStep() < maxSteps) {
           span.setAttribute("agent.current_step", ctx.getStep());
 
-          // We choose the next action based on the state of our system
-          const nextAction = await getNextAction(
-            ctx,
-            userQuery,
-            langfuseTraceId,
-          );
-
-          // Send annotation about the action we chose
           const stepIndex = ctx.getStep();
+
+          // First, generate plan and queries using queryRewriter
+          // Send planning annotation
           if (writeMessageAnnotation) {
             writeMessageAnnotation({
-              type: "NEW_ACTION",
-              action: nextAction,
+              type: "PLANNING",
+              title: "Creating research plan",
+              reasoning:
+                "Analyzing the question and generating targeted search queries",
             });
           }
 
-          // We execute the action and update the state of our system
-          if (nextAction.type === "search") {
-            // Update status to loading
+          try {
+            // Generate plan and queries using queryRewriter
+            const queryResult = await queryRewriter(
+              ctx,
+              userQuery,
+              langfuseTraceId,
+            );
+
+            // Send queries generated annotation
             if (writeMessageAnnotation) {
               writeMessageAnnotation({
-                type: "ACTION_UPDATE",
-                stepIndex,
-                status: "loading",
+                type: "QUERIES_GENERATED",
+                plan: queryResult.plan,
+                queries: queryResult.queries,
               });
             }
 
-            try {
-              const searchHistoryEntry = await searchAndScrape(
-                nextAction.query,
-                messages,
-                langfuseTraceId,
-              );
+            // Execute all queries in parallel
+            const searchPromises = queryResult.queries.map(
+              async (query, index) => {
+                // Send loading annotation for this query
+                if (writeMessageAnnotation) {
+                  writeMessageAnnotation({
+                    type: "SEARCH_UPDATE",
+                    queryIndex: index,
+                    query,
+                    status: "loading",
+                  });
+                }
 
-              // Report the combined search and scrape results
-              ctx.reportSearch(searchHistoryEntry);
+                try {
+                  const searchHistoryEntry = await searchAndScrape(
+                    query,
+                    messages,
+                    langfuseTraceId,
+                  );
 
-              // Update status to completed
+                  // Send completed annotation for this query
+                  if (writeMessageAnnotation) {
+                    writeMessageAnnotation({
+                      type: "SEARCH_UPDATE",
+                      queryIndex: index,
+                      query,
+                      status: "completed",
+                    });
+                  }
+
+                  return searchHistoryEntry;
+                } catch (error) {
+                  // Send error annotation for this query
+                  if (writeMessageAnnotation) {
+                    writeMessageAnnotation({
+                      type: "SEARCH_UPDATE",
+                      queryIndex: index,
+                      query,
+                      status: "error",
+                      error:
+                        error instanceof Error
+                          ? error.message
+                          : "Search failed",
+                    });
+                  }
+
+                  Sentry.captureException(error, {
+                    contexts: {
+                      agent_loop: {
+                        step: stepIndex,
+                        action_type: "search",
+                        query,
+                        query_index: index,
+                        user_query: userQuery,
+                      },
+                    },
+                  });
+
+                  // Return null for failed searches, but don't throw to allow other searches to continue
+                  return null;
+                }
+              },
+            );
+
+            // Wait for all searches to complete
+            const searchResults = await Promise.all(searchPromises);
+
+            // Report successful search results to context
+            searchResults.forEach((result) => {
+              if (result) {
+                ctx.reportSearch(result);
+              }
+            });
+
+            // Now decide whether to continue or answer based on the state of our system
+            const nextAction = await getNextAction(
+              ctx,
+              userQuery,
+              langfuseTraceId,
+            );
+
+            // Send annotation about the action we chose
+            if (writeMessageAnnotation) {
+              writeMessageAnnotation({
+                type: "NEW_ACTION",
+                action: nextAction,
+              });
+            }
+
+            if (nextAction.type === "continue") {
+              // Update action status to completed and continue the loop
               if (writeMessageAnnotation) {
                 writeMessageAnnotation({
                   type: "ACTION_UPDATE",
@@ -240,35 +324,36 @@ export const runAgentLoop = async (
                   status: "completed",
                 });
               }
-            } catch (error) {
-              // Update status to error
-              if (writeMessageAnnotation) {
-                writeMessageAnnotation({
-                  type: "ACTION_UPDATE",
-                  stepIndex,
-                  status: "error",
-                  error:
-                    error instanceof Error ? error.message : "Search failed",
-                });
-              }
-              Sentry.captureException(error, {
-                contexts: {
-                  agent_loop: {
-                    step: stepIndex,
-                    action_type: "search",
-                    query: nextAction.query,
-                    user_query: userQuery,
-                  },
-                },
+            } else if (nextAction.type === "answer") {
+              span.setAttribute("agent.final_action", "answer");
+              return answerQuestion(ctx, {
+                langfuseTraceId,
+                onFinish,
               });
-              throw error;
             }
-          } else if (nextAction.type === "answer") {
-            span.setAttribute("agent.final_action", "answer");
-            return answerQuestion(ctx, {
-              langfuseTraceId,
-              onFinish,
+          } catch (error) {
+            // Update status to error
+            if (writeMessageAnnotation) {
+              writeMessageAnnotation({
+                type: "ACTION_UPDATE",
+                stepIndex,
+                status: "error",
+                error:
+                  error instanceof Error
+                    ? error.message
+                    : "Planning or search failed",
+              });
+            }
+            Sentry.captureException(error, {
+              contexts: {
+                agent_loop: {
+                  step: stepIndex,
+                  action_type: "planning_and_search",
+                  user_query: userQuery,
+                },
+              },
             });
+            throw error;
           }
 
           // We increment the step counter
