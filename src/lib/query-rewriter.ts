@@ -3,7 +3,6 @@ import { z } from "zod";
 import { model } from "~/lib/model";
 import type { SystemContext } from "~/lib/system-context";
 
-
 // Zod schema for structured output
 export const queryRewriterSchema = z.object({
   plan: z

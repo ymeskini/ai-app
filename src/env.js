@@ -26,6 +26,7 @@ export const env = createEnv({
     LANGFUSE_PUBLIC_KEY: z.string(),
     LANGFUSE_BASEURL: z.string().url(),
     JINA_API_KEY: z.string(),
+    TAVILY_API_KEY: z.string(),
     EVAL_DATASET: z.enum(["dev", "ci", "regression"]).default("dev"),
   },
 
@@ -55,6 +56,7 @@ export const env = createEnv({
     LANGFUSE_PUBLIC_KEY: process.env.LANGFUSE_PUBLIC_KEY,
     LANGFUSE_BASEURL: process.env.LANGFUSE_BASEURL,
     JINA_API_KEY: process.env.JINA_API_KEY,
+    TAVILY_API_KEY: process.env.TAVILY_API_KEY,
     EVAL_DATASET: process.env.EVAL_DATASET,
   },
   /**

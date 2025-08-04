@@ -224,9 +224,15 @@ export const bulkCrawlWebsitesWithJina = jinaBulkCrawlWebsites;
 
 // Helper function to choose between scraping methods
 export const crawlWebsiteAdaptive = async (
-  options: CrawlOptions & { url: string; useJina?: boolean },
+  options: CrawlOptions & {
+    url: string;
+    method?: "cheerio" | "jina" | "auto";
+  },
 ): Promise<CrawlResponse> => {
-  if (options.useJina && process.env.JINA_API_KEY) {
+  const { method = "auto" } = options;
+
+  // If Jina is specifically requested or auto mode and Jina is available
+  if ((method === "jina" || method === "auto") && process.env.JINA_API_KEY) {
     const jinaResult = await jinaCrawlWebsite({
       url: options.url,
       maxRetries: options.maxRetries,
@@ -240,12 +246,14 @@ export const crawlWebsiteAdaptive = async (
         success: true,
         data: jinaResult.data,
       };
-    } else {
+    } else if (method === "jina") {
+      // If Jina was specifically requested and failed, return the error
       return {
         success: false,
         error: jinaResult.error,
       };
     }
+    // If auto mode and Jina failed, continue to fallback
   }
 
   // Fallback to traditional scraping
