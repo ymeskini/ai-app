@@ -1,107 +1,50 @@
 "use client";
 
+import { DefaultChatTransport } from "ai";
 import { useChat } from "@ai-sdk/react";
 import { Loader2, ArrowUp } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
-import type { Message } from "ai";
 import { StickToBottom } from "use-stick-to-bottom";
+
 import { ChatMessage } from "~/components/chat-message";
 import { SignInModal } from "~/components/sign-in-modal";
-import { ErrorMessage } from "~/components/error-message";
-import { isNewChatCreated } from "~/lib/chat-utils";
-import type { OurMessageAnnotation } from "~/lib/get-next-action";
+import type { OurMessage } from "~/lib/types";
 
 interface ChatProps {
   userName: string;
   isAuthenticated: boolean;
-  chatId: string;
-  isNewChat: boolean;
-  initialMessages?: Message[];
+  chatId: string | undefined;
+  initialMessages: OurMessage[];
 }
-
-// Helper function to format the reset time
-const formatResetTime = (resetTime: string) => {
-  const resetDate = new Date(resetTime);
-  const now = new Date();
-  const timeDiff = resetDate.getTime() - now.getTime();
-
-  if (timeDiff <= 0) {
-    return "now";
-  }
-
-  const hours = Math.floor(timeDiff / (1000 * 60 * 60));
-  const minutes = Math.floor((timeDiff % (1000 * 60 * 60)) / (1000 * 60));
-
-  if (hours > 0) {
-    return `${hours}h ${minutes}m`;
-  } else {
-    return `${minutes}m`;
-  }
-};
 
 export const ChatPage = ({
   userName,
   isAuthenticated,
   chatId,
-  isNewChat,
   initialMessages = [],
 }: ChatProps) => {
   const [showSignInModal, setShowSignInModal] = useState(false);
-  const [rateLimitError, setRateLimitError] = useState<string | null>(null);
   const router = useRouter();
-
-  const {
-    messages,
-    input,
-    handleInputChange,
-    handleSubmit: originalHandleSubmit,
-    status,
-    data,
-  } = useChat({
-    initialMessages,
-    body: {
-      chatId,
-      isNewChat,
-    },
-    onError: (error) => {
-      try {
-        const errorData = JSON.parse(error.message) as {
-          error?: string;
-          resetTime?: string;
-          message?: string;
-        };
-
-        if (errorData.error === "Rate limit exceeded" && errorData.resetTime) {
-          const timeUntilReset = formatResetTime(errorData.resetTime);
-          setRateLimitError(
-            `Rate limit exceeded. Your daily limit will reset in ${timeUntilReset}.`,
-          );
-        } else {
-          setRateLimitError(error.message);
-        }
-      } catch {
-        // If parsing fails, use the original error message
-        setRateLimitError(error.message);
+  const { messages, status, sendMessage } = useChat<OurMessage>({
+    transport: new DefaultChatTransport({
+      body: {
+        chatId,
+      },
+    }),
+    messages: initialMessages,
+    onData: (dataPart) => {
+      if (dataPart.type === "data-new-chat-created") {
+        router.push(`?id=${dataPart.data.chatId}`);
       }
-    },
-    onResponse: () => {
-      setRateLimitError(null);
     },
   });
 
-  // Handle new chat creation and redirection
-  useEffect(() => {
-    const lastDataItem = data?.[data.length - 1];
+  const [input, setInput] = useState("");
 
-    if (lastDataItem && isNewChatCreated(lastDataItem)) {
-      router.push(`?id=${lastDataItem.chatId}`);
-    }
-  }, [data, router]);
+  const isLoading = status === "streaming";
 
-  const isLoading = status === "submitted" || status === "streaming";
-
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
     if (!isAuthenticated) {
@@ -109,7 +52,10 @@ export const ChatPage = ({
       return;
     }
 
-    originalHandleSubmit(e);
+    await sendMessage({
+      text: input,
+    });
+    setInput("");
   };
 
   return (
@@ -131,38 +77,18 @@ export const ChatPage = ({
                     parts={message.parts}
                     role={message.role}
                     userName={userName}
-                    annotations={(() => {
-                      if (!message.annotations) return undefined;
-                      return message.annotations
-                        .filter((ann) => {
-                          return (
-                            ann != null &&
-                            typeof ann === "object" &&
-                            "type" in ann &&
-                            typeof ann.type === "string"
-                          );
-                        })
-                        .map((ann) => ann as unknown as OurMessageAnnotation);
-                    })()}
                   />
                 );
               })}
             </div>
           </StickToBottom.Content>
         </StickToBottom>
-
-        {rateLimitError && (
-          <div className="border-t border-gray-200 p-4">
-            <ErrorMessage message={rateLimitError} />
-          </div>
-        )}
-
         <div className="px-4 py-4">
           <form onSubmit={handleSubmit} className="mx-auto max-w-[65ch]">
             <div className="relative flex items-center">
               <input
                 value={input}
-                onChange={handleInputChange}
+                onChange={(e) => setInput(e.target.value)}
                 placeholder="Say something..."
                 autoFocus
                 aria-label="Chat input"

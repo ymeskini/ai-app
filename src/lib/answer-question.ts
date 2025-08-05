@@ -1,4 +1,5 @@
 import { streamText, type StreamTextResult } from "ai";
+import * as Sentry from "@sentry/nextjs";
 import { type SystemContext } from "./system-context.ts";
 import { model } from "./model.ts";
 
@@ -7,10 +8,9 @@ export function answerQuestion(
   opts: {
     isFinal?: boolean;
     langfuseTraceId?: string;
-    onFinish: Parameters<typeof streamText>[0]["onFinish"];
   },
-): StreamTextResult<never, string> {
-  const { isFinal = false, langfuseTraceId, onFinish } = opts;
+): StreamTextResult<any, string> {
+  const { isFinal = false, langfuseTraceId } = opts;
 
   const result = streamText({
     model,
@@ -25,7 +25,7 @@ When answering:
 
 ${isFinal ? "Note: We may not have all the information needed to answer the question completely. Please provide your best attempt at an answer based on the available information." : ""}`,
     prompt: `Message History:
-${ctx.getMessagesHistory()}
+${ctx.getMessageHistory()}
 
 Based on the following context, please answer the question:
 
@@ -39,8 +39,13 @@ ${ctx.getSearchHistory()}`,
           },
         }
       : undefined,
-    onFinish,
   });
+
+  result.usage
+    .then((usage) => {
+      if (usage) ctx.reportUsage("answer-question", usage);
+    })
+    .catch(Sentry.captureException);
 
   return result;
 }

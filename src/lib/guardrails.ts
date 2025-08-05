@@ -1,17 +1,21 @@
 import { generateObject } from "ai";
 import { z } from "zod";
-import type { SystemContext } from "~/lib/system-context";
-import { guardrailModel } from "~/lib/model";
+import { guardrailModel } from "./model.ts";
+import type { SystemContext } from "./system-context.ts";
+import type { GuardrailResult } from "./types.ts";
 
-const guardrailSchema = z.object({
-  classification: z.enum(["allow", "refuse"]),
-  reason: z
-    .string()
-    .optional()
-    .describe("If refused, explain why."),
-});
+export const checkIsSafe = async (
+  ctx: SystemContext,
+): Promise<GuardrailResult> => {
+  const messageHistory: string = ctx.getMessageHistory();
 
-const GUARDRAIL_SYSTEM_PROMPT = `You are a content safety classifier for a DeepSearch application. Your job is to analyze user queries and determine if they should be processed or refused based on safety guidelines.
+  const { object } = await generateObject({
+    model: guardrailModel,
+    schema: z.object({
+      classification: z.enum(["allow", "refuse"]),
+      reason: z.string().optional().describe("If refused, explain why."),
+    }),
+    system: `You are a content safety classifier for a DeepSearch application. Your job is to analyze user queries and determine if they should be processed or refused based on safety guidelines.
 
 You will receive the complete message history in XML format:
 
@@ -25,8 +29,8 @@ Analyze the entire conversation context, including how the current query relates
 
 For each conversation history provided, analyze the latest user message in context and respond with exactly one of these classifications:
 
-- \`allow\`: Query is safe to process
-- \`refuse\`: Query violates safety guidelines
+- **allow**: Query is safe to process
+- **refuse**: Query violates safety guidelines
 
 Consider conversation context including:
 
@@ -35,7 +39,7 @@ Consider conversation context including:
 - Multi-turn attempts to extract dangerous information
 - Context that makes seemingly innocent requests problematic
 
-## Safety Guidelines - \`refuse\` if the query seeks:
+## Safety Guidelines - REFUSE if the query seeks:
 
 ### Illegal Activities
 
@@ -68,7 +72,7 @@ Consider conversation context including:
 - Non-consensual intimate content
 - Human trafficking information
 
-## Edge Cases - Use refuse for:
+## Edge Cases - Use REFUSE for:
 
 - Legitimate research questions that could potentially be misused
 - Educational queries that need context boundaries but lack proper safeguards
@@ -122,15 +126,8 @@ Respond with valid JSON in this exact format:
 "reason": "Repeated attempt to obtain dangerous information after initial refusal"
 }
 
-Remember: When in doubt, err on the side of caution. Your goal is protecting users while maintaining utility for legitimate research and information needs.`;
-
-export const checkIsSafe = async (ctx: SystemContext) => {
-  const messageHistory = ctx.getMessagesHistory();
-
-  const { object } = await generateObject({
-    model: guardrailModel,
-    schema: guardrailSchema,
-    system: GUARDRAIL_SYSTEM_PROMPT,
+Remember: When in doubt, err on the side of caution. Your goal is protecting users while maintaining utility for legitimate research and information needs.
+`,
     prompt: messageHistory,
   });
 

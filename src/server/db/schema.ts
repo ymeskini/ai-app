@@ -2,14 +2,15 @@ import { relations, sql } from "drizzle-orm";
 import {
   index,
   integer,
-  json,
   pgTableCreator,
   primaryKey,
   text,
   timestamp,
   varchar,
+  json,
+  boolean,
 } from "drizzle-orm/pg-core";
-import type { AdapterAccount } from "next-auth/adapters";
+import type { AdapterAccount } from "@auth/core/adapters";
 import type { InferSelectModel, InferInsertModel } from "drizzle-orm";
 
 /**
@@ -25,14 +26,19 @@ export const users = createTable("user", {
     .notNull()
     .primaryKey()
     .$defaultFn(() => crypto.randomUUID()),
-  name: varchar("name", { length: 255 }).notNull(),
+  name: varchar("name", { length: 255 }),
   email: varchar("email", { length: 255 }).notNull(),
   emailVerified: timestamp("email_verified", {
     mode: "date",
     withTimezone: true,
   }).default(sql`CURRENT_TIMESTAMP`),
   image: varchar("image", { length: 255 }),
+  isAdmin: boolean("is_admin").notNull().default(false),
 });
+
+export const usersRelations = relations(users, ({ many }) => ({
+  accounts: many(accounts),
+}));
 
 export const accounts = createTable(
   "account",
@@ -55,13 +61,17 @@ export const accounts = createTable(
     id_token: text("id_token"),
     session_state: varchar("session_state", { length: 255 }),
   },
-  (account) => [
-    primaryKey({
+  (account) => ({
+    compoundKey: primaryKey({
       columns: [account.provider, account.providerAccountId],
     }),
-    index("account_user_id_idx").on(account.userId),
-  ],
+    userIdIdx: index("account_user_id_idx").on(account.userId),
+  }),
 );
+
+export const accountsRelations = relations(accounts, ({ one }) => ({
+  user: one(users, { fields: [accounts.userId], references: [users.id] }),
+}));
 
 export const sessions = createTable(
   "session",
@@ -77,8 +87,14 @@ export const sessions = createTable(
       withTimezone: true,
     }).notNull(),
   },
-  (session) => [index("session_user_id_idx").on(session.userId)],
+  (session) => ({
+    userIdIdx: index("session_user_id_idx").on(session.userId),
+  }),
 );
+
+export const sessionsRelations = relations(sessions, ({ one }) => ({
+  user: one(users, { fields: [sessions.userId], references: [users.id] }),
+}));
 
 export const verificationTokens = createTable(
   "verification_token",
@@ -90,78 +106,57 @@ export const verificationTokens = createTable(
       withTimezone: true,
     }).notNull(),
   },
-  (vt) => [primaryKey({ columns: [vt.identifier, vt.token] })],
+  (vt) => ({
+    compoundKey: primaryKey({ columns: [vt.identifier, vt.token] }),
+  }),
 );
 
-export const chats = createTable(
-  "chat",
-  {
-    id: varchar("id", { length: 255 })
-      .primaryKey()
-      .$defaultFn(() => crypto.randomUUID()),
-    userId: varchar("user_id", { length: 255 })
-      .notNull()
-      .references(() => users.id),
-    title: varchar("title", { length: 255 }).notNull(),
-    createdAt: timestamp("created_at", {
-      mode: "date",
-      withTimezone: true,
-    })
-      .default(sql`CURRENT_TIMESTAMP`)
-      .notNull(),
-    updatedAt: timestamp("updated_at", {
-      mode: "date",
-      withTimezone: true,
-    })
-      .default(sql`CURRENT_TIMESTAMP`)
-      .notNull(),
-  },
-  (chat) => [index("chat_user_id_idx").on(chat.userId)],
-);
-
-export const messages = createTable(
-  "message",
-  {
-    id: varchar("id", { length: 255 })
-      .primaryKey()
-      .$defaultFn(() => crypto.randomUUID()),
-    chatId: varchar("chat_id", { length: 255 })
-      .notNull()
-      .references(() => chats.id),
-    role: varchar("role", { length: 50 }).notNull(),
-    parts: json("parts").notNull(),
-    annotations: json("annotations"),
-    order: integer("order").notNull(),
-    createdAt: timestamp("created_at", {
-      mode: "date",
-      withTimezone: true,
-    })
-      .default(sql`CURRENT_TIMESTAMP`)
-      .notNull(),
-  },
-  (message) => [
-    index("message_chat_id_idx").on(message.chatId),
-    index("message_order_idx").on(message.order),
-  ],
-);
-
-export const usersRelations = relations(users, ({ many }) => ({
-  accounts: many(accounts),
-  chats: many(chats),
-}));
-
-export const accountsRelations = relations(accounts, ({ one }) => ({
-  user: one(users, { fields: [accounts.userId], references: [users.id] }),
-}));
-
-export const sessionsRelations = relations(sessions, ({ one }) => ({
-  user: one(users, { fields: [sessions.userId], references: [users.id] }),
-}));
+export const chats = createTable("chat", {
+  id: varchar("id", { length: 255 })
+    .notNull()
+    .primaryKey()
+    .$defaultFn(() => crypto.randomUUID()),
+  userId: varchar("user_id", { length: 255 })
+    .notNull()
+    .references(() => users.id),
+  title: varchar("title", { length: 255 }).notNull(),
+  createdAt: timestamp("created_at", {
+    mode: "date",
+    withTimezone: true,
+  })
+    .notNull()
+    .default(sql`CURRENT_TIMESTAMP`),
+  updatedAt: timestamp("updated_at", {
+    mode: "date",
+    withTimezone: true,
+  })
+    .notNull()
+    .default(sql`CURRENT_TIMESTAMP`),
+});
 
 export const chatsRelations = relations(chats, ({ one, many }) => ({
   user: one(users, { fields: [chats.userId], references: [users.id] }),
   messages: many(messages),
 }));
+
+export const messages = createTable("message", {
+  id: varchar("id", { length: 255 })
+    .notNull()
+    .primaryKey()
+    .$defaultFn(() => crypto.randomUUID()),
+  chatId: varchar("chat_id", { length: 255 })
+    .notNull()
+    .references(() => chats.id),
+  role: varchar("role", { length: 255 }).notNull(),
+  parts: json("parts").notNull(),
+  order: integer("order").notNull(),
+  createdAt: timestamp("created_at", {
+    mode: "date",
+    withTimezone: true,
+  })
+    .notNull()
+    .default(sql`CURRENT_TIMESTAMP`),
+});
 
 export const messagesRelations = relations(messages, ({ one }) => ({
   chat: one(chats, { fields: [messages.chatId], references: [chats.id] }),

@@ -3,12 +3,6 @@ import { setTimeout } from "node:timers/promises";
 import robotsParser from "robots-parser";
 import TurndownService from "turndown";
 import { cacheWithRedis } from "~/server/redis/redis";
-import { jinaCrawlWebsite, jinaBulkCrawlWebsites } from "./jina-scraper";
-
-// Type declaration for TurndownService
-interface TurndownServiceType {
-  turndown: (html: string) => string;
-}
 
 export const DEFAULT_MAX_RETRIES = 3;
 const MIN_DELAY_MS = 500; // 0.5 seconds
@@ -55,12 +49,7 @@ export interface BulkCrawlOptions extends CrawlOptions {
   urls: string[];
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call
-const turndownService = new (TurndownService as unknown as new (options: {
-  headingStyle: string;
-  codeBlockStyle: string;
-  emDelimiter: string;
-}) => TurndownServiceType)({
+const turndownService = new TurndownService({
   headingStyle: "atx",
   codeBlockStyle: "fenced",
   emDelimiter: "*",
@@ -118,39 +107,38 @@ const checkRobotsTxt = async (url: string): Promise<boolean> => {
   }
 };
 
-export const bulkCrawlWebsites = cacheWithRedis(
-  "bulkCrawlWebsites",
-  async (options: BulkCrawlOptions): Promise<BulkCrawlResponse> => {
-    const { urls, maxRetries = DEFAULT_MAX_RETRIES } = options;
+export const bulkCrawlWebsites = async (
+  options: BulkCrawlOptions,
+): Promise<BulkCrawlResponse> => {
+  const { urls, maxRetries = DEFAULT_MAX_RETRIES } = options;
 
-    const results = await Promise.all(
-      urls.map(async (url) => ({
-        url,
-        result: await crawlWebsite({ url, maxRetries }),
-      })),
-    );
+  const results = await Promise.all(
+    urls.map(async (url) => ({
+      url,
+      result: await crawlWebsite({ url, maxRetries }),
+    })),
+  );
 
-    const allSuccessful = results.every((r) => r.result.success);
+  const allSuccessful = results.every((r) => r.result.success);
 
-    if (!allSuccessful) {
-      const errors = results
-        .filter((r) => !r.result.success)
-        .map((r) => `${r.url}: ${(r.result as CrawlErrorResponse).error}`)
-        .join("\n");
-
-      return {
-        results,
-        success: false,
-        error: `Failed to crawl some websites:\n${errors}`,
-      };
-    }
+  if (!allSuccessful) {
+    const errors = results
+      .filter((r) => !r.result.success)
+      .map((r) => `${r.url}: ${(r.result as CrawlErrorResponse).error}`)
+      .join("\n");
 
     return {
       results,
-      success: true,
-    } as BulkCrawlResponse;
-  },
-);
+      success: false,
+      error: `Failed to crawl some websites:\n${errors}`,
+    };
+  }
+
+  return {
+    results,
+    success: true,
+  } as BulkCrawlResponse;
+};
 
 export const crawlWebsite = cacheWithRedis(
   "crawlWebsite",
@@ -217,45 +205,3 @@ export const crawlWebsite = cacheWithRedis(
     };
   },
 );
-
-// Export Jina-based crawling functions as alternatives
-export const crawlWebsiteWithJina = jinaCrawlWebsite;
-export const bulkCrawlWebsitesWithJina = jinaBulkCrawlWebsites;
-
-// Helper function to choose between scraping methods
-export const crawlWebsiteAdaptive = async (
-  options: CrawlOptions & {
-    url: string;
-    method?: "cheerio" | "jina" | "auto";
-  },
-): Promise<CrawlResponse> => {
-  const { method = "auto" } = options;
-
-  // If Jina is specifically requested or auto mode and Jina is available
-  if ((method === "jina" || method === "auto") && process.env.JINA_API_KEY) {
-    const jinaResult = await jinaCrawlWebsite({
-      url: options.url,
-      maxRetries: options.maxRetries,
-      returnFormat: "markdown",
-      removeSelectors: ["nav", "header", "footer", "script", "style"],
-    });
-
-    // Convert Jina response to standard CrawlResponse format
-    if (jinaResult.success) {
-      return {
-        success: true,
-        data: jinaResult.data,
-      };
-    } else if (method === "jina") {
-      // If Jina was specifically requested and failed, return the error
-      return {
-        success: false,
-        error: jinaResult.error,
-      };
-    }
-    // If auto mode and Jina failed, continue to fallback
-  }
-
-  // Fallback to traditional scraping
-  return crawlWebsite(options);
-};

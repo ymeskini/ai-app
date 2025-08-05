@@ -1,12 +1,11 @@
 import { PlusIcon } from "lucide-react";
 import Link from "next/link";
-import type { Message } from "ai";
+
 import { auth } from "~/server/auth/index.ts";
 import { ChatPage } from "./chat.tsx";
 import { AuthButton } from "../components/auth-button.tsx";
-import { ErrorMessage } from "../components/error-message.tsx";
 import { ChatItem } from "../components/chat-item.tsx";
-import { getChats, getChat } from "~/server/db/chat.ts";
+import { getChats, getChat } from "~/server/db/queries.ts";
 import {
   SidebarProvider,
   Sidebar,
@@ -21,59 +20,37 @@ import {
   SidebarTrigger,
 } from "~/components/ui/sidebar";
 import { Button } from "~/components/ui/button";
+import type { OurMessage } from "~/lib/types.ts";
 
 export default async function HomePage({
   searchParams,
 }: {
   searchParams: Promise<{ id?: string; error?: string }>;
 }) {
-  const { id, error } = await searchParams;
   const session = await auth();
   const userName = session?.user?.name ?? "Guest";
   const isAuthenticated = !!session?.user;
-  const userId = session?.user?.id;
+  const { id: chatId } = await searchParams;
 
-  // Fetch chats from database if user is authenticated
-  const chats = isAuthenticated && userId ? await getChats(userId) : [];
+  // Fetch chats if user is authenticated
+  const chats =
+    isAuthenticated && session.user?.id
+      ? await getChats({ userId: session.user.id })
+      : [];
 
-  // Generate a stable chatId and determine if it's a new chat
-  const chatId = id ?? crypto.randomUUID();
-  const isNewChat = !id;
+  // Fetch active chat if chatId is present and user is authenticated
+  const activeChat =
+    chatId && isAuthenticated && session.user?.id
+      ? await getChat({ userId: session.user.id, chatId })
+      : null;
 
-  // Fetch specific chat if id is provided
-  const currentChat = id && userId ? await getChat(id, userId) : null;
-
-  // Convert database messages to the format expected by useChat
+  // Map the messages to the correct format for useChat
   const initialMessages =
-    currentChat?.messages?.map((msg) => ({
+    activeChat?.messages.map((msg) => ({
       id: msg.id,
-      // msg.role is typed as string, so we need to cast it to the correct type
       role: msg.role as "user" | "assistant",
-      // msg.content contains the parts data from the database
-      parts: msg.content as Message["parts"],
-      // content is not persisted, so we can safely pass an empty string,
-      // because parts are always present, and the AI SDK will use the parts
-      // to construct the content
-      content: "",
-      // Include annotations if they exist
-      annotations: msg.annotations as Message["annotations"],
+      parts: msg.parts as OurMessage["parts"],
     })) ?? [];
-
-  // Handle authentication errors
-  const getErrorMessage = (errorType: string | undefined) => {
-    switch (errorType) {
-      case "AccessDenied":
-        return "Access denied. Only authorized users can sign in with Discord.";
-      case "OAuthSignin":
-        return "Error occurred during Discord sign-in. Please try again.";
-      case "OAuthCallback":
-        return "Authentication failed. Please try signing in again.";
-      default:
-        return null;
-    }
-  };
-
-  const errorMessage = getErrorMessage(error);
 
   return (
     <SidebarProvider>
@@ -108,7 +85,7 @@ export default async function HomePage({
                       <ChatItem
                         key={chat.id}
                         chat={chat}
-                        isActive={chat.id === id}
+                        isActive={chat.id === chatId}
                       />
                     ))
                   ) : (
@@ -138,18 +115,11 @@ export default async function HomePage({
             <SidebarTrigger className="h-8 w-8 text-gray-600 hover:bg-gray-100 hover:text-gray-900" />
             <div className="text-sm font-medium text-gray-900">Chat</div>
           </div>
-          {errorMessage && (
-            <div className="flex-shrink-0 border-b border-gray-200 bg-red-50 p-4">
-              <ErrorMessage message={errorMessage} />
-            </div>
-          )}
           <div className="min-h-0 flex-1">
             <ChatPage
-              key={chatId}
               userName={userName}
               isAuthenticated={isAuthenticated}
               chatId={chatId}
-              isNewChat={isNewChat}
               initialMessages={initialMessages}
             />
           </div>

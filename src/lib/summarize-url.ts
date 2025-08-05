@@ -1,7 +1,7 @@
 import { generateText } from "ai";
-import { summarizerModel } from "./model.ts";
-import type { SystemContext } from "./system-context.ts";
+import { summarizationModel } from "./model.ts";
 import { cacheWithRedis } from "~/server/redis/redis.ts";
+import type { SystemContext } from "./system-context.ts";
 
 type SummarizeURLArgs = {
   conversation: string;
@@ -16,6 +16,7 @@ type SummarizeURLArgs = {
   ctx?: SystemContext;
 };
 
+// eslint-disable-next-line @typescript-eslint/no-unsafe-call
 export const summarizeURL = cacheWithRedis(
   "summarizeURL",
   async (opts: SummarizeURLArgs): Promise<string> => {
@@ -58,8 +59,8 @@ Important guidelines:
 Critical Reminder: If content lacks a specific aspect of the research topic, clearly state that in the synthesis, and you should NEVER make up information and NEVER rely on external knowledge.
 `;
 
-    const { text } = await generateText({
-      model: summarizerModel,
+    const { text, usage } = await generateText({
+      model: summarizationModel,
       prompt: prompt,
       experimental_telemetry: langfuseTraceId
         ? {
@@ -73,6 +74,10 @@ Critical Reminder: If content lacks a specific aspect of the research topic, cle
           }
         : undefined,
     });
+
+    if (opts.ctx && usage) {
+      opts.ctx.reportUsage("summarize-url", usage);
+    }
 
     return text;
   },
