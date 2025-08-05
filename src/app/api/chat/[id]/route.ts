@@ -4,17 +4,17 @@ import * as Sentry from "@sentry/nextjs";
 
 export async function DELETE(
   request: Request,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> },
 ) {
   const session = await auth();
+  const {id} = await params;
 
   if (!session) {
     return new Response("Unauthorized", { status: 401 });
   }
 
-  const chatId = params.id;
 
-  if (!chatId) {
+  if (!id) {
     return new Response("Chat ID is required", { status: 400 });
   }
 
@@ -25,12 +25,12 @@ export async function DELETE(
         name: "DELETE /api/chat/[id]",
       },
       async (span) => {
-        span.setAttribute("chat.id", chatId);
+        span.setAttribute("chat.id", id);
         span.setAttribute("user.id", session.user.id);
 
         const result = await deleteChat({
           userId: session.user.id,
-          chatId: chatId,
+          chatId: id,
         });
 
         if (!result.success) {
