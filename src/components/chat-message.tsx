@@ -1,6 +1,7 @@
 import ReactMarkdown, { type Components } from "react-markdown";
 import { useState } from "react";
 import { SearchIcon } from "lucide-react";
+import Image from "next/image";
 
 import type { OurMessage } from "~/lib/types";
 
@@ -19,23 +20,32 @@ type Source = {
 
 const components: Components = {
   // Override default elements with custom styling
-  p: ({ children }) => <p className="mb-4 first:mt-0 last:mb-0">{children}</p>,
-  ul: ({ children }) => <ul className="mb-4 list-disc pl-4">{children}</ul>,
-  ol: ({ children }) => <ol className="mb-4 list-decimal pl-4">{children}</ol>,
-  li: ({ children }) => <li className="mb-1">{children}</li>,
+  p: ({ children }) => (
+    <p className="mb-4 text-gray-800 first:mt-0 last:mb-0">{children}</p>
+  ),
+  ul: ({ children }) => (
+    <ul className="mb-4 list-disc pl-4 text-gray-800">{children}</ul>
+  ),
+  ol: ({ children }) => (
+    <ol className="mb-4 list-decimal pl-4 text-gray-800">{children}</ol>
+  ),
+  li: ({ children }) => <li className="mb-1 text-gray-700">{children}</li>,
   code: ({ className, children, ...props }) => (
-    <code className={`${className ?? ""}`} {...props}>
+    <code
+      className={`rounded bg-gray-100 px-1.5 py-0.5 font-mono text-sm text-gray-900 ${className ?? ""}`}
+      {...props}
+    >
       {children}
     </code>
   ),
   pre: ({ children }) => (
-    <pre className="mb-4 overflow-x-auto rounded-lg bg-gray-700 p-4">
+    <pre className="mb-4 overflow-x-auto rounded-lg bg-gray-900 p-4 text-gray-100">
       {children}
     </pre>
   ),
   a: ({ children, ...props }) => (
     <a
-      className="text-blue-400 underline"
+      className="text-blue-600 underline transition-colors hover:text-blue-800"
       target="_blank"
       rel="noopener noreferrer"
       {...props}
@@ -58,18 +68,21 @@ const Sources = ({ sources }: { sources: Source[] }) => {
           href={source.url}
           target="_blank"
           rel="noopener noreferrer"
-          className="flex items-start gap-2 rounded border border-gray-700 bg-gray-800 p-3 text-left hover:bg-gray-700"
+          className="flex items-start gap-2 rounded-lg border border-gray-200 bg-white p-3 text-left shadow-sm transition-all hover:border-gray-300 hover:shadow-md"
         >
           {source.favicon && (
+            // eslint-disable-next-line @next/next/no-img-element
             <img
               src={source.favicon}
-              alt=""
+              alt={source.title}
               className="mt-0.5 h-4 w-4 flex-shrink-0"
             />
           )}
           <div className="flex-1">
-            <div className="text-sm font-medium">{source.title}</div>
-            <div className="mt-1 text-xs">{source.snippet}</div>
+            <div className="text-sm font-medium text-gray-900">
+              {source.title}
+            </div>
+            <div className="mt-1 text-xs text-gray-600">{source.snippet}</div>
           </div>
         </a>
       ))}
@@ -91,36 +104,46 @@ const ReasoningSteps = ({ parts }: { parts: OurMessage["parts"] }) => {
             <li key={index} className="relative">
               <button
                 onClick={() => setOpenStep(isOpen ? null : index)}
-                className={`flex w-full min-w-34 flex-shrink-0 items-center rounded px-2 py-1 text-left text-sm transition-colors ${
-                  isOpen ? "bg-gray-700" : "hover: hover:bg-gray-800"
+                className={`flex w-full min-w-34 flex-shrink-0 items-center rounded-lg px-3 py-2 text-left text-sm font-medium transition-all ${
+                  isOpen
+                    ? "bg-blue-50 text-blue-900 shadow-sm"
+                    : "text-gray-700 hover:bg-gray-50 hover:text-gray-900"
                 }`}
               >
                 <span
-                  className={`z-10 mr-3 flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full border-2 border-gray-500 text-xs font-bold ${
-                    isOpen ? "border-blue-400 text-white" : "bg-gray-800"
+                  className={`z-10 mr-3 flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full border-2 text-xs font-bold transition-all ${
+                    isOpen
+                      ? "border-blue-500 bg-blue-500 text-white shadow-sm"
+                      : "border-gray-300 bg-white text-gray-600"
                   }`}
                 >
                   {index + 1}
                 </span>
                 {part.type === "data-new-action" ? part.data.title : "Sources"}
               </button>
-              <div className={`${isOpen ? "mt-1" : "hidden"}`}>
+              <div className={`${isOpen ? "mt-2" : "hidden"}`}>
                 {isOpen && (
-                  <div className="px-2 py-1">
+                  <div className="rounded-lg bg-gray-50 px-4 py-3">
                     {part.type === "data-new-action" ? (
                       <>
-                        <div className="text-sm italic">
+                        <div className="text-sm text-gray-700">
                           <Markdown>{part.data.reasoning}</Markdown>
                         </div>
                         {part.data.type === "continue" && (
-                          <div className="mt-2 flex flex-col gap-2 text-sm">
-                            <div className="flex items-center gap-2">
+                          <div className="mt-3 flex flex-col gap-2 text-sm">
+                            <div className="flex items-center gap-2 text-blue-700">
                               <SearchIcon className="size-4" />
-                              <span>Continuing search...</span>
+                              <span className="font-medium">
+                                Continuing search...
+                              </span>
                             </div>
-                            <div className="mt-2 border-l-2 border-gray-700 pl-4">
-                              <div className="font-medium">Feedback:</div>
-                              <Markdown>{part.data.feedback!}</Markdown>
+                            <div className="mt-2 border-l-4 border-blue-200 pl-4">
+                              <div className="font-medium text-gray-900">
+                                Feedback:
+                              </div>
+                              <div className="text-gray-700">
+                                <Markdown>{part.data.feedback!}</Markdown>
+                              </div>
                             </div>
                           </div>
                         )}
@@ -144,13 +167,13 @@ export const ChatMessage = ({ role, userName, parts }: ChatMessageProps) => {
 
   return (
     <div className="mb-6">
-      <div className="round-2 rounded-lg border-1 p-4">
-        <p className="mb-2 text-sm font-semibold text-black">
-          {isAI ? "AI" : userName}
+      <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
+        <p className="mb-3 text-sm font-semibold text-gray-900">
+          {isAI ? "AI Assistant" : userName}
         </p>
 
         {isAI && <ReasoningSteps parts={parts} />}
-        <div className="prose prose-invert max-w-none">
+        <div className="prose max-w-none text-gray-800">
           {parts.map((part, index) => {
             if (part.type === "text") {
               return <Markdown key={index}>{part.text}</Markdown>;
