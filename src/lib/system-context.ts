@@ -44,6 +44,11 @@ export class SystemContext {
   private searchHistory: SearchHistoryEntry[] = [];
 
   /**
+   * The most recent feedback from getNextAction evaluator
+   */
+  private latestFeedback?: string;
+
+  /**
    * The user's location context
    */
   private locationContext: string;
@@ -71,6 +76,14 @@ export class SystemContext {
 
   reportSearch(search: SearchHistoryEntry) {
     this.searchHistory.push(search);
+  }
+
+  reportFeedback(feedback: string) {
+    this.latestFeedback = feedback;
+  }
+
+  getLatestFeedback(): string | undefined {
+    return this.latestFeedback;
   }
 
   // Backward compatibility methods - deprecated but kept for existing code

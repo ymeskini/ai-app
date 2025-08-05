@@ -152,11 +152,21 @@ export const runAgentLoop = async (
               langfuseTraceId,
             );
 
+            // Store the feedback in context for future query optimization
+            ctx.reportFeedback(nextAction.feedback);
+
             // Send annotation about the action we chose
             if (writeMessageAnnotation) {
               writeMessageAnnotation({
                 type: "NEW_ACTION",
                 action: nextAction,
+              });
+
+              // Send evaluator feedback annotation
+              writeMessageAnnotation({
+                type: "EVALUATOR_FEEDBACK",
+                feedback: nextAction.feedback,
+                actionType: nextAction.type,
               });
             }
 

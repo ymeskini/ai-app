@@ -34,6 +34,7 @@ export type SerializableMessageAnnotation =
         type: string;
         title: string;
         reasoning: string;
+        feedback: string;
       };
     }
   | {
@@ -58,6 +59,11 @@ export type SerializableMessageAnnotation =
       query: string;
       status: "loading" | "completed" | "error";
       error?: string;
+    }
+  | {
+      type: "EVALUATOR_FEEDBACK";
+      feedback: string;
+      actionType: "continue" | "answer";
     };
 
 /**
@@ -66,44 +72,55 @@ export type SerializableMessageAnnotation =
 export function serializeAnnotation(
   annotation: OurMessageAnnotation,
 ): SerializableMessageAnnotation {
-  if (annotation.type === "NEW_ACTION") {
-    return {
-      type: annotation.type,
-      action: {
-        type: annotation.action.type,
-        title: annotation.action.title,
-        reasoning: annotation.action.reasoning,
-      },
-    };
-  } else if (annotation.type === "ACTION_UPDATE") {
-    return {
-      type: annotation.type,
-      stepIndex: annotation.stepIndex,
-      status: annotation.status,
-      error: annotation.error,
-    };
-  } else if (annotation.type === "PLANNING") {
-    return {
-      type: annotation.type,
-      title: annotation.title,
-      reasoning: annotation.reasoning,
-    };
-  } else if (annotation.type === "QUERIES_GENERATED") {
-    return {
-      type: annotation.type,
-      plan: annotation.plan,
-      queries: annotation.queries,
-    };
-  } else if (annotation.type === "SEARCH_UPDATE") {
-    return {
-      type: annotation.type,
-      queryIndex: annotation.queryIndex,
-      query: annotation.query,
-      status: annotation.status,
-      error: annotation.error,
-    };
-  } else {
-    // This should never happen with proper typing, but provides a fallback
-    throw new Error(`Unknown annotation type`);
+  switch (annotation.type) {
+    case "NEW_ACTION":
+      return {
+        type: annotation.type,
+        action: {
+          type: annotation.action.type,
+          title: annotation.action.title,
+          reasoning: annotation.action.reasoning,
+          feedback: annotation.action.feedback,
+        },
+      };
+    case "ACTION_UPDATE":
+      return {
+        type: annotation.type,
+        stepIndex: annotation.stepIndex,
+        status: annotation.status,
+        error: annotation.error,
+      };
+    case "PLANNING":
+      return {
+        type: annotation.type,
+        title: annotation.title,
+        reasoning: annotation.reasoning,
+      };
+    case "QUERIES_GENERATED":
+      return {
+        type: annotation.type,
+        plan: annotation.plan,
+        queries: annotation.queries,
+      };
+    case "SEARCH_UPDATE":
+      return {
+        type: annotation.type,
+        queryIndex: annotation.queryIndex,
+        query: annotation.query,
+        status: annotation.status,
+        error: annotation.error,
+      };
+    case "EVALUATOR_FEEDBACK":
+      return {
+        type: annotation.type,
+        feedback: annotation.feedback,
+        actionType: annotation.actionType,
+      };
+    default:
+      // This should never happen with proper typing, but provides a fallback
+      const exhaustiveCheck: never = annotation;
+      throw new Error(
+        `Unknown annotation type: ${JSON.stringify(exhaustiveCheck)}`,
+      );
   }
 }

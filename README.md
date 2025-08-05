@@ -329,6 +329,9 @@ When designing AI-powered applications, a key architectural decision is how much
 
 An **agentic** system gives the LLM significant autonomy to decide the next action at each step. The LLM can choose, for example, whether to search the web, scrape a URL, or generate an answer. It may also decide how many searches to perform, which URLs to scrape, and when to generate a final answer. The more control-flow decisions are handed to the LLM, the more flexible—but also less predictable—the system becomes. Running the same query multiple times may yield different behaviors and outcomes.
 
+See this article from anthropic [Building Effective Agents](https://www.anthropic.com/engineering/building-effective-agents)
+
+
 ### Workflows
 
 A **workflow** approach, by contrast, is deterministic and predictable. The sequence of steps is predefined in code, and the LLM is restricted to follow this path or make only limited decisions. This reduces variability and makes the application’s behavior more consistent and reliable.

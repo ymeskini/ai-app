@@ -8,6 +8,7 @@ import {
   XCircle,
   Brain,
   ListChecks,
+  MessageSquare,
 } from "lucide-react";
 import type { OurMessageAnnotation } from "~/lib/get-next-action";
 import { cn } from "~/lib/utils";
@@ -126,13 +127,15 @@ const ReasoningSteps = ({
       action?: Extract<OurMessageAnnotation, { type: "NEW_ACTION" }>["action"];
       status: "pending" | "loading" | "completed" | "error";
       error?: string;
-      type: "action" | "planning" | "queries" | "search";
+      type: "action" | "planning" | "queries" | "search" | "feedback";
       title: string;
       reasoning?: string;
       plan?: string;
       queries?: string[];
       query?: string;
       queryIndex?: number;
+      feedback?: string;
+      actionType?: "continue" | "answer";
     }> = [];
 
     annotations.forEach((annotation) => {
@@ -191,6 +194,14 @@ const ReasoningSteps = ({
 
         searchStep.status = annotation.status;
         searchStep.error = annotation.error;
+      } else if (annotation.type === "EVALUATOR_FEEDBACK") {
+        steps.push({
+          type: "feedback",
+          title: `Evaluator ${annotation.actionType === "continue" ? "suggests more research" : "ready to answer"}`,
+          feedback: annotation.feedback,
+          actionType: annotation.actionType,
+          status: "completed",
+        });
       }
     });
 
@@ -270,6 +281,9 @@ const ReasoningSteps = ({
                   <ListChecks className="ml-2 size-4" />
                 )}
                 {step.type === "search" && <Search className="ml-2 size-4" />}
+                {step.type === "feedback" && (
+                  <MessageSquare className="ml-2 size-4" />
+                )}
               </button>
               <div className={`${isOpen ? "mt-1" : "hidden"}`}>
                 {isOpen && (
@@ -306,6 +320,23 @@ const ReasoningSteps = ({
                       <div className="mt-2 flex items-center gap-2 text-sm text-gray-400">
                         <Search className="size-4" />
                         <span>{step.query}</span>
+                      </div>
+                    )}
+                    {step.feedback && step.type === "feedback" && (
+                      <div className="mt-2">
+                        <div className="mb-1 text-sm font-semibold text-gray-300">
+                          Evaluator Feedback:
+                        </div>
+                        <div
+                          className={cn(
+                            "rounded border-l-4 p-2 text-sm",
+                            step.actionType === "continue"
+                              ? "border-yellow-400 bg-yellow-950/20 text-yellow-300"
+                              : "border-green-400 bg-green-950/20 text-green-300",
+                          )}
+                        >
+                          <Markdown>{step.feedback}</Markdown>
+                        </div>
                       </div>
                     )}
                   </div>

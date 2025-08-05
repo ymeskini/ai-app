@@ -77,9 +77,7 @@ export const sessions = createTable(
       withTimezone: true,
     }).notNull(),
   },
-  (session) => [
-    index("session_user_id_idx").on(session.userId),
-  ],
+  (session) => [index("session_user_id_idx").on(session.userId)],
 );
 
 export const verificationTokens = createTable(
@@ -92,9 +90,7 @@ export const verificationTokens = createTable(
       withTimezone: true,
     }).notNull(),
   },
-  (vt) => [
-    primaryKey({ columns: [vt.identifier, vt.token] }),
-  ],
+  (vt) => [primaryKey({ columns: [vt.identifier, vt.token] })],
 );
 
 export const chats = createTable(
@@ -120,9 +116,7 @@ export const chats = createTable(
       .default(sql`CURRENT_TIMESTAMP`)
       .notNull(),
   },
-  (chat) => [
-    index("chat_user_id_idx").on(chat.userId),
-  ],
+  (chat) => [index("chat_user_id_idx").on(chat.userId)],
 );
 
 export const messages = createTable(

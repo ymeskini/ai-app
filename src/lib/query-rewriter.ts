@@ -76,8 +76,23 @@ Current User's Question: "${userQuery}"
 Search History (what we already know):
 ${context.getSearchHistory()}
 
+${
+  context.getLatestFeedback()
+    ? `## EVALUATOR FEEDBACK
+The evaluator has provided the following feedback about information gaps and areas needing improvement:
+
+${context.getLatestFeedback()}
+
+Use this feedback to guide your query generation - focus on addressing the specific gaps and suggestions mentioned.`
+    : ""
+}
+
 ## INSTRUCTIONS
-Based on the context above, create a research plan and generate 3-5 search queries. If there's already search history, build upon it with more specific or complementary queries. Focus on gaps in the current information or areas that need more recent/detailed data.
+Based on the context above, create a research plan and generate 3-5 search queries. If there's already search history, build upon it with more specific or complementary queries. ${
+      context.getLatestFeedback()
+        ? "Pay special attention to the evaluator feedback above and ensure your queries address the identified gaps."
+        : "Focus on gaps in the current information or areas that need more recent/detailed data."
+    }
 
 Provide both a detailed plan and the specific queries to execute.
     `,
