@@ -1,5 +1,11 @@
 import type { UIMessage } from "ai";
-import { createUIMessageStream, createUIMessageStreamResponse } from "ai";
+import {
+  createUIMessageStream,
+  generateId,
+  JsonToSseTransformStream,
+} from "ai";
+import { createResumableStreamContext } from "resumable-stream/ioredis";
+
 import { auth } from "~/server/auth";
 import { upsertChat } from "~/server/db/queries";
 import { eq } from "drizzle-orm";
@@ -10,9 +16,22 @@ import { env } from "~/env";
 import { streamFromDeepSearch } from "~/lib/deep-search";
 import type { OurMessage } from "~/lib/types";
 import { messageToString } from "~/lib/utils";
+import { after } from "next/server";
+import {
+  getStreamId,
+  setStreamId,
+  streamPublisher,
+  streamSubscriber,
+} from "~/server/redis/redis";
 
 const langfuse = new Langfuse({
   environment: env.NODE_ENV,
+});
+
+const streamContext = createResumableStreamContext({
+  waitUntil: after,
+  publisher: streamPublisher,
+  subscriber: streamSubscriber,
 });
 
 export const maxDuration = 60;
@@ -63,7 +82,12 @@ export async function POST(request: Request) {
     userId: session.user.id,
   });
 
-  const stream = createUIMessageStream<OurMessage>({
+  const streamId = generateId();
+
+  await setStreamId({ chatId: currentChatId, streamId });
+
+  const streamWithFinish = createUIMessageStream<OurMessage>({
+    originalMessages: messages as OurMessage[],
     execute: async ({ writer }) => {
       // If this is a new chat, send the chat ID to the frontend
       if (!chatId) {
@@ -85,32 +109,59 @@ export async function POST(request: Request) {
 
       writer.merge(result.toUIMessageStream());
     },
-    onError: (e) => {
-      console.error(e);
-      return "Oops, an error occurred!";
-    },
-    onFinish: async (response) => {
-      // Merge the existing messages with the response messages
-      const entireConversation = [...messages, ...response.messages];
-
-      const lastMessage = entireConversation[entireConversation.length - 1];
+    onFinish: async ({ messages: finishedMessages }) => {
+      // Save the complete chat history
+      const lastMessage = finishedMessages[finishedMessages.length - 1];
       if (!lastMessage) {
         return;
       }
 
-      // Save the complete chat history
       await upsertChat({
         userId: session.user.id,
         chatId: currentChatId,
         title: messageToString(lastMessage).slice(0, 50) + "...",
-        messages: entireConversation,
+        messages: finishedMessages,
       });
 
       await langfuse.flushAsync();
     },
   });
 
-  return createUIMessageStreamResponse({
-    stream,
+  const resumableStream = await streamContext.resumableStream(streamId, () =>
+    streamWithFinish.pipeThrough(new JsonToSseTransformStream()),
+  );
+
+  return new Response(resumableStream);
+}
+
+export async function GET(request: Request) {
+  const { searchParams } = new URL(request.url);
+  const chatId = searchParams.get("chatId");
+
+  if (!chatId) {
+    return new Response("id is required", { status: 400 });
+  }
+
+  const streamId = await getStreamId(chatId);
+  console.log(streamId);
+
+  if (!streamId) {
+    return new Response("No streams found", { status: 404 });
+  }
+
+  if (!streamId) {
+    return new Response("No streams found", { status: 404 });
+  }
+
+  const emptyDataStream = createUIMessageStream({
+    execute: () => {
+      // This stream will be empty initially
+    },
   });
+
+  return new Response(
+    await streamContext.resumableStream(streamId, () =>
+      emptyDataStream.pipeThrough(new JsonToSseTransformStream()),
+    ),
+  );
 }

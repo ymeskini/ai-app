@@ -43,7 +43,7 @@ export async function runAgentLoop(
   // or we've taken 10 actions
   while (!ctx.shouldStop()) {
     // 1. Get the plan and queries
-    const { plan, queries } = await queryRewriter(ctx, opts);
+    const { queries } = await queryRewriter(ctx, opts);
 
     // 2. Execute all queries in parallel
     const searchResultsPromises = queries.map(async (query) => {

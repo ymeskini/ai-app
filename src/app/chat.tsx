@@ -3,7 +3,7 @@
 import { DefaultChatTransport } from "ai";
 import { useChat } from "@ai-sdk/react";
 import { Loader2, ArrowUp } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { StickToBottom } from "use-stick-to-bottom";
 
@@ -26,11 +26,14 @@ export const ChatPage = ({
 }: ChatProps) => {
   const [showSignInModal, setShowSignInModal] = useState(false);
   const router = useRouter();
-  const { messages, status, sendMessage } = useChat<OurMessage>({
+  const { messages, status, sendMessage, resumeStream } = useChat<OurMessage>({
     transport: new DefaultChatTransport({
       body: {
         chatId,
       },
+      prepareReconnectToStreamRequest: () => ({
+        api: `/api/chat?chatId=${chatId}`,
+      }),
     }),
     messages: initialMessages,
     onData: (dataPart) => {
@@ -59,6 +62,16 @@ export const ChatPage = ({
       text: queryInput,
     });
   };
+
+  useEffect(() => {
+    if (true) {
+      resumeStream().catch((error) => {
+        console.error("Failed to resume stream:", error);
+      });
+    }
+    // We want to disable the exhaustive deps rule here because we only want to run this effect once
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <>

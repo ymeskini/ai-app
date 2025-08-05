@@ -52,6 +52,7 @@ export default async function HomePage({
       parts: msg.parts as OurMessage["parts"],
     })) ?? [];
 
+
   return (
     <SidebarProvider>
       <div className="flex h-screen w-full bg-white">
