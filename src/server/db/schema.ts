@@ -55,12 +55,12 @@ export const accounts = createTable(
     id_token: text("id_token"),
     session_state: varchar("session_state", { length: 255 }),
   },
-  (account) => ({
-    compoundKey: primaryKey({
+  (account) => [
+    primaryKey({
       columns: [account.provider, account.providerAccountId],
     }),
-    userIdIdx: index("account_user_id_idx").on(account.userId),
-  }),
+    index("account_user_id_idx").on(account.userId),
+  ],
 );
 
 export const sessions = createTable(
@@ -77,9 +77,9 @@ export const sessions = createTable(
       withTimezone: true,
     }).notNull(),
   },
-  (session) => ({
-    userIdIdx: index("session_user_id_idx").on(session.userId),
-  }),
+  (session) => [
+    index("session_user_id_idx").on(session.userId),
+  ],
 );
 
 export const verificationTokens = createTable(
@@ -92,9 +92,9 @@ export const verificationTokens = createTable(
       withTimezone: true,
     }).notNull(),
   },
-  (vt) => ({
-    compoundKey: primaryKey({ columns: [vt.identifier, vt.token] }),
-  }),
+  (vt) => [
+    primaryKey({ columns: [vt.identifier, vt.token] }),
+  ],
 );
 
 export const chats = createTable(
@@ -120,9 +120,9 @@ export const chats = createTable(
       .default(sql`CURRENT_TIMESTAMP`)
       .notNull(),
   },
-  (chat) => ({
-    userIdIdx: index("chat_user_id_idx").on(chat.userId),
-  }),
+  (chat) => [
+    index("chat_user_id_idx").on(chat.userId),
+  ],
 );
 
 export const messages = createTable(
@@ -145,10 +145,10 @@ export const messages = createTable(
       .default(sql`CURRENT_TIMESTAMP`)
       .notNull(),
   },
-  (message) => ({
-    chatIdIdx: index("message_chat_id_idx").on(message.chatId),
-    orderIdx: index("message_order_idx").on(message.order),
-  }),
+  (message) => [
+    index("message_chat_id_idx").on(message.chatId),
+    index("message_order_idx").on(message.order),
+  ],
 );
 
 export const usersRelations = relations(users, ({ many }) => ({
