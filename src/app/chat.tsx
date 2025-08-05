@@ -139,8 +139,7 @@ export const ChatPage = ({
                             ann != null &&
                             typeof ann === "object" &&
                             "type" in ann &&
-                            (ann.type === "NEW_ACTION" ||
-                              ann.type === "ACTION_UPDATE")
+                            typeof ann.type === "string"
                           );
                         })
                         .map((ann) => ann as unknown as OurMessageAnnotation);

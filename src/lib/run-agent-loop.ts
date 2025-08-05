@@ -3,12 +3,25 @@ import * as Sentry from "@sentry/nextjs";
 import {
   getNextAction,
   type OurMessageAnnotation,
+  type SourceResult,
 } from "~/lib/get-next-action";
 import { queryRewriter } from "~/lib/query-rewriter";
 import { answerQuestion } from "~/lib/answer-question";
 import { SystemContext } from "~/lib/system-context";
 import type { StreamTextFinishResult } from "~/types/chat";
 import { searchAndScrape } from "~/lib/search-and-scrape";
+
+/**
+ * Generate favicon URL from a domain
+ */
+function getFaviconUrl(url: string): string {
+  try {
+    const domain = new URL(url).hostname;
+    return `https://www.google.com/s2/favicons?domain=${domain}&sz=16`;
+  } catch {
+    return "";
+  }
+}
 
 /**
  * Main agent loop that continues until we have an answer or reach max steps
@@ -144,6 +157,30 @@ export const runAgentLoop = async (
                 ctx.reportSearch(result);
               }
             });
+
+            // Collect all sources from successful search results and send sources annotation
+            const allSources: SourceResult[] = [];
+            searchResults.forEach((result) => {
+              if (result) {
+                result.results.forEach((searchResult) => {
+                  allSources.push({
+                    title: searchResult.title,
+                    url: searchResult.url,
+                    snippet: searchResult.snippet,
+                    favicon: getFaviconUrl(searchResult.url),
+                  });
+                });
+              }
+            });
+
+            // Send sources found annotation (only once per step)
+            if (writeMessageAnnotation && allSources.length > 0) {
+              writeMessageAnnotation({
+                type: "SOURCES_FOUND",
+                stepIndex,
+                sources: allSources,
+              });
+            }
 
             // Now decide whether to continue or answer based on the state of our system
             const nextAction = await getNextAction(

@@ -9,6 +9,8 @@ import {
   Brain,
   ListChecks,
   MessageSquare,
+  Globe,
+  ExternalLink,
 } from "lucide-react";
 import type { OurMessageAnnotation } from "~/lib/get-next-action";
 import { cn } from "~/lib/utils";
@@ -127,7 +129,13 @@ const ReasoningSteps = ({
       action?: Extract<OurMessageAnnotation, { type: "NEW_ACTION" }>["action"];
       status: "pending" | "loading" | "completed" | "error";
       error?: string;
-      type: "action" | "planning" | "queries" | "search" | "feedback";
+      type:
+        | "action"
+        | "planning"
+        | "queries"
+        | "search"
+        | "feedback"
+        | "sources";
       title: string;
       reasoning?: string;
       plan?: string;
@@ -136,6 +144,11 @@ const ReasoningSteps = ({
       queryIndex?: number;
       feedback?: string;
       actionType?: "continue" | "answer";
+      sources?: Extract<
+        OurMessageAnnotation,
+        { type: "SOURCES_FOUND" }
+      >["sources"];
+      stepIndex?: number;
     }> = [];
 
     annotations.forEach((annotation) => {
@@ -200,6 +213,14 @@ const ReasoningSteps = ({
           title: `Evaluator ${annotation.actionType === "continue" ? "suggests more research" : "ready to answer"}`,
           feedback: annotation.feedback,
           actionType: annotation.actionType,
+          status: "completed",
+        });
+      } else if (annotation.type === "SOURCES_FOUND") {
+        steps.push({
+          type: "sources",
+          title: `Found ${annotation.sources.length} sources`,
+          sources: annotation.sources,
+          stepIndex: annotation.stepIndex,
           status: "completed",
         });
       }
@@ -281,6 +302,7 @@ const ReasoningSteps = ({
                   <ListChecks className="ml-2 size-4" />
                 )}
                 {step.type === "search" && <Search className="ml-2 size-4" />}
+                {step.type === "sources" && <Globe className="ml-2 size-4" />}
                 {step.type === "feedback" && (
                   <MessageSquare className="ml-2 size-4" />
                 )}
@@ -336,6 +358,51 @@ const ReasoningSteps = ({
                           )}
                         >
                           <Markdown>{step.feedback}</Markdown>
+                        </div>
+                      </div>
+                    )}
+                    {step.sources && step.type === "sources" && (
+                      <div className="mt-2">
+                        <div className="mb-2 text-sm font-semibold text-gray-300">
+                          Sources Found:
+                        </div>
+                        <div className="grid gap-2 md:grid-cols-2">
+                          {step.sources.map((source, sourceIndex) => (
+                            <a
+                              key={sourceIndex}
+                              href={source.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="group flex flex-col gap-2 rounded-lg border border-gray-600 bg-gray-800 p-3 text-sm transition-colors hover:border-gray-500 hover:bg-gray-700"
+                            >
+                              <div className="flex items-center gap-2">
+                                {source.favicon && (
+                                  <img
+                                    src={source.favicon}
+                                    alt=""
+                                    className="size-4 flex-shrink-0"
+                                    onError={(e) => {
+                                      e.currentTarget.style.display = "none";
+                                    }}
+                                  />
+                                )}
+                                <span className="flex-1 truncate font-medium text-gray-200 group-hover:text-white">
+                                  {source.title}
+                                </span>
+                                <ExternalLink className="size-3 flex-shrink-0 text-gray-400 group-hover:text-gray-300" />
+                              </div>
+                              <p
+                                className="overflow-hidden text-xs text-gray-400 group-hover:text-gray-300"
+                                style={{
+                                  display: "-webkit-box",
+                                  WebkitLineClamp: 2,
+                                  WebkitBoxOrient: "vertical",
+                                }}
+                              >
+                                {source.snippet}
+                              </p>
+                            </a>
+                          ))}
                         </div>
                       </div>
                     )}

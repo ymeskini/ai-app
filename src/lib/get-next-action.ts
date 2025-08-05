@@ -20,6 +20,14 @@ export interface AnswerAction {
 
 export type Action = ContinueAction | AnswerAction;
 
+// Source type for displaying in the frontend
+export interface SourceResult {
+  title: string;
+  url: string;
+  snippet: string;
+  favicon?: string;
+}
+
 // Message annotation type for progress tracking
 export type OurMessageAnnotation =
   | {
@@ -53,6 +61,11 @@ export type OurMessageAnnotation =
       type: "EVALUATOR_FEEDBACK";
       feedback: string;
       actionType: "continue" | "answer";
+    }
+  | {
+      type: "SOURCES_FOUND";
+      stepIndex: number;
+      sources: SourceResult[];
     };
 
 // Zod schema for structured output
@@ -67,7 +80,7 @@ export const actionSchema = z.object({
     .string()
     .optional()
     .describe(
-      "Detailed feedback about what information is missing, what gaps need to be filled, or what specific aspects need clarification. This feedback will be used to improve future search queries.",
+      "Required only when type is 'continue'. Detailed feedback about what information is missing or what needs to be improved in the search. This will be used to guide the next search iteration.",
     ),
   type: z.enum(["continue", "answer"]).describe(
     `The type of action to take.

@@ -64,6 +64,16 @@ export type SerializableMessageAnnotation =
       type: "EVALUATOR_FEEDBACK";
       feedback: string;
       actionType: "continue" | "answer";
+    }
+  | {
+      type: "SOURCES_FOUND";
+      stepIndex: number;
+      sources: Array<{
+        title: string;
+        url: string;
+        snippet: string;
+        favicon?: string;
+      }>;
     };
 
 /**
@@ -115,6 +125,12 @@ export function serializeAnnotation(
         type: annotation.type,
         feedback: annotation.feedback,
         actionType: annotation.actionType,
+      };
+    case "SOURCES_FOUND":
+      return {
+        type: annotation.type,
+        stepIndex: annotation.stepIndex,
+        sources: annotation.sources,
       };
     default:
       // This should never happen with proper typing, but provides a fallback

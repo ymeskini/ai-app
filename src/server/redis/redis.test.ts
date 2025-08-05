@@ -59,7 +59,7 @@ describe("generateCacheKey", () => {
 
   it("should be sensitive to object property order", () => {
     const keyPrefix = "test";
-    
+
     // JSON.stringify preserves property order as they were defined
     const obj1 = { a: 1, b: 2 };
     const obj2 = { b: 2, a: 1 };
@@ -126,7 +126,7 @@ describe("generateCacheKey", () => {
     const args = ["test", 123, { nested: { value: true } }];
 
     const keys = Array.from({ length: 100 }, () =>
-      generateCacheKey(keyPrefix, args)
+      generateCacheKey(keyPrefix, args),
     );
 
     // All keys should be identical
@@ -155,7 +155,7 @@ describe("generateCacheKey", () => {
 
   it("should handle special characters in arguments", () => {
     const keyPrefix = "special";
-    const args = ["with:colon", "with spaces", "with/slash", "with\"quotes"];
+    const args = ["with:colon", "with spaces", "with/slash", 'with"quotes'];
 
     const key1 = generateCacheKey(keyPrefix, args);
     const key2 = generateCacheKey(keyPrefix, args);
