@@ -18,6 +18,8 @@
     "typecheck": "tsc --noEmit",
     "format:write": "prettier --write \"**/*.{ts,tsx,js,jsx,mdx}\" --cache",
     "format:check": "prettier --check \"**/*.{ts,tsx,js,jsx,mdx}\" --cache",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "evals": "evalite watch"
   },
   "dependencies": {

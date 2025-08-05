@@ -14,7 +14,7 @@ const CACHE_KEY_SEPARATOR = ":";
 /**
  * Generate a clean, short cache key using a hash of the arguments
  */
-const generateCacheKey = (
+export const generateCacheKey = (
   keyPrefix: string,
   args: readonly unknown[],
 ): string => {
