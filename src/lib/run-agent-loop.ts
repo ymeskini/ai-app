@@ -11,6 +11,10 @@ import { SystemContext } from "~/lib/system-context";
 import type { StreamTextFinishResult } from "~/types/chat";
 import { searchAndScrape } from "~/lib/search-and-scrape";
 import { checkIsSafe } from "~/lib/guardrails";
+import { 
+  checkIfQuestionNeedsClarification, 
+  generateClarificationResponse 
+} from "~/lib/clarification-check";
 
 /**
  * Generate favicon URL from a domain
@@ -87,6 +91,36 @@ export const runAgentLoop = async (
           });
           span.setAttribute("guardrail.error", true);
           // Continue with normal processing if guardrail check fails
+        }
+
+        // Check if the question needs clarification before proceeding
+        try {
+          const clarificationResult = await checkIfQuestionNeedsClarification(ctx);
+          span.setAttribute("clarification.needs_clarification", clarificationResult.needsClarification);
+          
+          if (clarificationResult.needsClarification) {
+            span.setAttribute("clarification.reason", clarificationResult.reason);
+            
+            // Return a clarification request using generateClarificationResponse
+            return generateClarificationResponse(
+              ctx, 
+              clarificationResult.reason ?? "The question needs more specific information to provide an accurate response.",
+              onFinish
+            );
+          }
+        } catch (clarificationError) {
+          // If clarification check fails, log error but continue processing (fail open)
+          Sentry.captureException(clarificationError, {
+            contexts: {
+              clarification: {
+                user_query: userQuery,
+                message_count: messages.length,
+                langfuse_trace_id: langfuseTraceId,
+              },
+            },
+          });
+          span.setAttribute("clarification.error", true);
+          // Continue with normal processing if clarification check fails
         }
 
         // A loop that continues until we have an answer or we've taken maxSteps actions

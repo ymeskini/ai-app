@@ -353,8 +353,8 @@ const ReasoningSteps = ({
                           className={cn(
                             "rounded border-l-4 p-2 text-sm",
                             step.actionType === "continue"
-                              ? "border-yellow-400 bg-yellow-950/20 text-yellow-300"
-                              : "border-green-400 bg-green-950/20 text-green-300",
+                              ? "border-yellow-400"
+                              : "border-green-400  text-green-300",
                           )}
                         >
                           <Markdown>{step.feedback}</Markdown>
@@ -373,7 +373,7 @@ const ReasoningSteps = ({
                               href={source.url}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="group flex flex-col gap-2 rounded-lg border border-gray-600 bg-gray-800 p-3 text-sm transition-colors hover:border-gray-500 hover:bg-gray-700"
+                              className="group flex flex-col gap-2 rounded-lg border border-gray-600 p-3 text-sm transition-colors hover:border-gray-500 hover:bg-gray-700"
                             >
                               <div className="flex items-center gap-2">
                                 {source.favicon && (
@@ -386,7 +386,7 @@ const ReasoningSteps = ({
                                     }}
                                   />
                                 )}
-                                <span className="flex-1 truncate font-medium text-gray-200 group-hover:text-white">
+                                <span className="flex-1 truncate font-medium group-hover:text-white">
                                   {source.title}
                                 </span>
                                 <ExternalLink className="size-3 flex-shrink-0 text-gray-400 group-hover:text-gray-300" />
