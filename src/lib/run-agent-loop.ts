@@ -10,6 +10,7 @@ import { answerQuestion } from "~/lib/answer-question";
 import { SystemContext } from "~/lib/system-context";
 import type { StreamTextFinishResult } from "~/types/chat";
 import { searchAndScrape } from "~/lib/search-and-scrape";
+import { checkIsSafe } from "~/lib/guardrails";
 
 /**
  * Generate favicon URL from a domain
@@ -49,6 +50,44 @@ export const runAgentLoop = async (
 
         // A persistent container for the state of our system
         const ctx = new SystemContext(locationContext, messages);
+
+        // Check if the query is safe to process
+        try {
+          const safetyCheck = await checkIsSafe(ctx);
+          span.setAttribute("guardrail.classification", safetyCheck.classification);
+          
+          if (safetyCheck.classification === "refuse") {
+            span.setAttribute("guardrail.refusal_reason", safetyCheck.reason);
+            
+            // Return a refusal response using answerQuestion with a safety message
+            const refusedCtx = new SystemContext(locationContext, [
+              ...messages,
+              {
+                id: "safety-refusal",
+                role: "assistant",
+                content: `I cannot assist with this request as it may violate safety guidelines. ${safetyCheck.reason ? `Reason: ${safetyCheck.reason}` : ""} Please rephrase your question or ask about something else I can help with.`,
+              }
+            ]);
+            
+            return answerQuestion(refusedCtx, {
+              langfuseTraceId,
+              onFinish,
+            });
+          }
+        } catch (guardrailError) {
+          // If guardrail check fails, log error but continue processing (fail open)
+          Sentry.captureException(guardrailError, {
+            contexts: {
+              guardrail: {
+                user_query: userQuery,
+                message_count: messages.length,
+                langfuse_trace_id: langfuseTraceId,
+              },
+            },
+          });
+          span.setAttribute("guardrail.error", true);
+          // Continue with normal processing if guardrail check fails
+        }
 
         // A loop that continues until we have an answer or we've taken maxSteps actions
         while (ctx.getStep() < maxSteps) {
