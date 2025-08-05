@@ -1,7 +1,9 @@
+import * as Sentry from "@sentry/nextjs";
+import { eq, and } from "drizzle-orm";
+import type { UIMessage } from "ai";
+
 import { db } from "./index.ts";
 import { chats, messages } from "./schema.ts";
-import type { UIMessage } from "ai";
-import { eq, and } from "drizzle-orm";
 
 export const upsertChat = async (opts: {
   userId: string;
@@ -79,4 +81,38 @@ export const getChats = async (opts: { userId: string }) => {
     where: eq(chats.userId, userId),
     orderBy: (chats, { desc }) => [desc(chats.updatedAt)],
   });
+};
+
+export const deleteChat = async (opts: { userId: string; chatId: string }) => {
+  const { userId, chatId } = opts;
+
+  try {
+    // First, check if the chat exists and belongs to the user
+    const existingChat = await db.query.chats.findFirst({
+      where: and(eq(chats.id, chatId), eq(chats.userId, userId)),
+    });
+
+    if (!existingChat) {
+      return { success: false, error: "CHAT_NOT_FOUND" as const };
+    }
+
+    // Delete all messages first (due to foreign key constraint)
+    await db.delete(messages).where(eq(messages.chatId, chatId));
+
+    // Delete the chat
+    await db.delete(chats).where(eq(chats.id, chatId));
+
+    Sentry.addBreadcrumb({
+      message: "Chat deleted successfully",
+      category: "database",
+      data: { chatId, userId },
+      level: "info",
+    });
+
+    return { success: true };
+  } catch (error) {
+    Sentry.captureException(error);
+    console.error("Error deleting chat:", error);
+    return { success: false, error: "INTERNAL_ERROR" as const };
+  }
 };

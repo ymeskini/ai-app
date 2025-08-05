@@ -52,10 +52,12 @@ export const ChatPage = ({
       return;
     }
 
-    await sendMessage({
-      text: input,
-    });
+    const queryInput = input;
+
     setInput("");
+    await sendMessage({
+      text: queryInput,
+    });
   };
 
   return (

@@ -1,7 +1,6 @@
 import ReactMarkdown, { type Components } from "react-markdown";
 import { useState } from "react";
 import { SearchIcon } from "lucide-react";
-import Image from "next/image";
 
 import type { OurMessage } from "~/lib/types";
 
