@@ -48,3 +48,4 @@ yarn-error.log*
 *.local.*
 # Sentry Config File
 .env.sentry-build-plugin
+.trees
