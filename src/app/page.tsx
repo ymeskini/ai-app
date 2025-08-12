@@ -52,7 +52,6 @@ export default async function HomePage({
       parts: msg.parts as OurMessage["parts"],
     })) ?? [];
 
-
   return (
     <SidebarProvider>
       <div className="flex h-screen w-full bg-white">
@@ -118,6 +117,7 @@ export default async function HomePage({
           </div>
           <div className="min-h-0 flex-1">
             <ChatPage
+              key={chatId || "new-chat"}
               userName={userName}
               isAuthenticated={isAuthenticated}
               chatId={chatId}

@@ -7,12 +7,11 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> },
 ) {
   const session = await auth();
-  const {id} = await params;
+  const { id } = await params;
 
   if (!session) {
     return new Response("Unauthorized", { status: 401 });
   }
-
 
   if (!id) {
     return new Response("Chat ID is required", { status: 400 });
