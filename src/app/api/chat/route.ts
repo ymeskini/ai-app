@@ -1,22 +1,23 @@
 import type { UIMessage } from "ai";
+import { after } from "next/server";
 import {
   createUIMessageStream,
   generateId,
   JsonToSseTransformStream,
 } from "ai";
 import { createResumableStreamContext } from "resumable-stream/ioredis";
+import { eq } from "drizzle-orm";
+import { Langfuse } from "langfuse";
+import { ulid } from "ulid";
 
 import { auth } from "~/server/auth";
 import { upsertChat } from "~/server/db/queries";
-import { eq } from "drizzle-orm";
 import { db } from "~/server/db";
 import { chats } from "~/server/db/schema";
-import { Langfuse } from "langfuse";
 import { env } from "~/env";
 import { streamFromDeepSearch } from "~/lib/deep-search";
 import type { OurMessage } from "~/lib/types";
 import { messageToString } from "~/lib/utils";
-import { after } from "next/server";
 import {
   getStreamId,
   setStreamId,
@@ -57,7 +58,7 @@ export async function POST(request: Request) {
   // If no chatId is provided, create a new chat with the user's message
   let currentChatId = chatId;
   if (!currentChatId) {
-    const newChatId = crypto.randomUUID();
+    const newChatId = ulid();
     await upsertChat({
       userId: session.user.id,
       chatId: newChatId,
