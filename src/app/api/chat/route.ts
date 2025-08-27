@@ -132,26 +132,41 @@ export async function POST(request: Request) {
     streamWithFinish.pipeThrough(new JsonToSseTransformStream()),
   );
 
-  return new Response(resumableStream);
+  return new Response(resumableStream, {
+    headers: {
+      "Transfer-Encoding": "chunked",
+      Connection: "keep-alive",
+      "Content-Encoding": "none",
+    },
+  });
 }
 
 export async function GET(request: Request) {
+  const session = await auth();
+
+  if (!session) {
+    return new Response("Unauthorized", { status: 401 });
+  }
+
   const { searchParams } = new URL(request.url);
   const chatId = searchParams.get("chatId");
 
   if (!chatId) {
-    return new Response("id is required", { status: 400 });
+    return new Response("chatId is required", { status: 400 });
+  }
+
+  // Verify the chat belongs to the user
+  const chat = await db.query.chats.findFirst({
+    where: eq(chats.id, chatId),
+  });
+  if (!chat || chat.userId !== session.user.id) {
+    return new Response("Chat not found or unauthorized", { status: 404 });
   }
 
   const streamId = await getStreamId(chatId);
-  console.log(streamId);
 
   if (!streamId) {
-    return new Response("No streams found", { status: 404 });
-  }
-
-  if (!streamId) {
-    return new Response("No streams found", { status: 404 });
+    return new Response("No active streams found", { status: 404 });
   }
 
   const emptyDataStream = createUIMessageStream({
@@ -164,5 +179,12 @@ export async function GET(request: Request) {
     await streamContext.resumableStream(streamId, () =>
       emptyDataStream.pipeThrough(new JsonToSseTransformStream()),
     ),
+    {
+      headers: {
+        "Transfer-Encoding": "chunked",
+        Connection: "keep-alive",
+        "Content-Encoding": "none",
+      },
+    },
   );
 }
