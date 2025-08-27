@@ -27,15 +27,14 @@ export const ChatPage = ({
   const [showSignInModal, setShowSignInModal] = useState(false);
   const router = useRouter();
   const { messages, status, sendMessage, resumeStream } = useChat<OurMessage>({
+    id: chatId,
+    messages: initialMessages,
     transport: new DefaultChatTransport({
+      api: "/api/chat",
       body: {
         chatId,
       },
-      prepareReconnectToStreamRequest: () => ({
-        api: `/api/chat?chatId=${chatId}`,
-      }),
     }),
-    messages: initialMessages,
     onData: (dataPart) => {
       if (dataPart.type === "data-new-chat-created") {
         router.push(`?id=${dataPart.data.chatId}`);
@@ -64,7 +63,8 @@ export const ChatPage = ({
   };
 
   useEffect(() => {
-    if (true) {
+    // Only try to resume if we have a chatId and are authenticated
+    if (chatId && isAuthenticated) {
       resumeStream().catch((error) => {
         console.error("Failed to resume stream:", error);
       });
