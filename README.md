@@ -321,6 +321,118 @@ This tiered approach ensures:
 - **Adequate coverage** before deployment (ci dataset)
 - **Comprehensive protection** against regressions (full dataset)
 
+## 🤖 Agent Loop Architecture
+
+This application implements a sophisticated agent loop system that combines the flexibility of agentic behavior with the reliability of structured workflows. The agent system performs deep research by iteratively searching, scraping, and analyzing web content until it has sufficient information to answer user queries.
+
+### How the Agent Loop Works
+
+The core agent loop is implemented in `src/server/agent/run-agent-loop.ts` and follows this process:
+
+#### 1. **Initialization & Context Setup**
+- Creates a `SystemContext` to track conversation history, search results, and loop state
+- Performs optional guardrail checks for content safety
+- Sets maximum iteration limit (4 steps) to prevent infinite loops
+
+#### 2. **Iterative Research Loop**
+```
+while (!shouldStop()) {
+  ↓
+  Query Rewriting → Web Search → Content Scraping → Summarization → Decision
+  ↓
+  Continue or Answer?
+}
+```
+
+#### 3. **Query Rewriting Phase**
+- Uses `queryRewriter()` to break down complex questions into focused search queries
+- Generates multiple targeted queries from the user's original question
+- Optimizes queries for better search results
+
+#### 4. **Parallel Web Search**
+- Executes multiple search queries simultaneously using Serper API
+- Fetches top 3 results per query for comprehensive coverage
+- Deduplicates sources by URL to avoid redundant processing
+
+#### 5. **Content Extraction & Processing**
+- Scrapes full content from discovered URLs using `bulkCrawlWebsites()`
+- Processes multiple URLs in parallel for efficiency
+- Handles scraping failures gracefully with fallback content
+
+#### 6. **Intelligent Summarization**
+- Summarizes each scraped page using `summarizeURL()`
+- Contextualizes summaries based on original query and conversation history
+- Extracts relevant information while maintaining source attribution
+
+#### 7. **Decision Engine**
+- Uses `getNextAction()` to analyze gathered information against original query
+- Determines if sufficient information exists to provide a complete answer
+- Generates structured feedback about information gaps when continuing
+
+#### 8. **Answer Generation**
+- Produces final answer when sufficient information is available
+- Includes source citations and structured formatting
+- Handles both intermediate answers (within loop) and final answers (at step limit)
+
+### Key Components
+
+| Component | File | Purpose |
+|-----------|------|---------|
+| **SystemContext** | `system-context.ts` | Manages loop state, search history, and token usage |
+| **Agent Loop** | `run-agent-loop.ts` | Main orchestration logic and iteration control |
+| **Decision Engine** | `get-next-action.ts` | Determines whether to continue searching or answer |
+| **Query Rewriter** | `query-rewriter.ts` | Breaks down complex queries into searchable terms |
+| **URL Summarizer** | `summarize-url.ts` | Extracts relevant content from scraped pages |
+| **Deep Search** | `deep-search.ts` | High-level interface for the agent system |
+
+### Loop State Management
+
+The `SystemContext` class tracks:
+- **Step Counter**: Current iteration (max 4 steps)
+- **Search History**: All queries, results, and summaries
+- **Message History**: Full conversation context
+- **Token Usage**: LLM usage tracking across all operations
+- **Feedback**: Decision engine feedback for next iterations
+
+### Agent vs. Workflow Balance
+
+This implementation strikes a balance between agentic autonomy and workflow predictability:
+
+**Agentic Elements:**
+- LLM decides when sufficient information is gathered
+- Dynamic query generation based on information gaps
+- Flexible content summarization based on relevance
+
+**Workflow Elements:**
+- Fixed iteration limit prevents infinite loops
+- Structured decision schema (`continue` vs `answer`)
+- Predictable search → scrape → summarize → decide pattern
+- Parallel processing for consistent performance
+
+### Real-time Frontend Updates
+
+The agent loop provides real-time feedback to the frontend through structured message parts:
+
+```typescript
+// Source discovery
+{ type: "data-sources", data: uniqueSources }
+
+// Action updates
+{ type: "data-new-action", data: nextAction }
+```
+
+This enables the UI to show:
+- Live source discovery as they're found
+- Current agent reasoning and next steps
+- Progress through the research process
+
+### Performance Optimizations
+
+- **Parallel Processing**: Search queries and content scraping run concurrently
+- **Source Deduplication**: Prevents redundant processing of the same URLs
+- **Bounded Execution**: Maximum 4 iterations prevents runaway costs
+- **Streaming Responses**: Provides immediate feedback while processing
+
 ## 🧭 Agents vs. Workflows
 
 When designing AI-powered applications, a key architectural decision is how much control-flow power to give to the LLM. This is often framed as the difference between "agents" and "workflows."

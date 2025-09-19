@@ -88,9 +88,7 @@ export const sessions = createTable(
       withTimezone: true,
     }).notNull(),
   },
-  (session) => [
-    index("session_user_id_idx").on(session.userId),
-  ],
+  (session) => [index("session_user_id_idx").on(session.userId)],
 );
 
 export const sessionsRelations = relations(sessions, ({ one }) => ({
@@ -107,9 +105,7 @@ export const verificationTokens = createTable(
       withTimezone: true,
     }).notNull(),
   },
-  (vt) => [
-    primaryKey({ columns: [vt.identifier, vt.token] }),
-  ],
+  (vt) => [primaryKey({ columns: [vt.identifier, vt.token] })],
 );
 
 export const chats = createTable("chat", {

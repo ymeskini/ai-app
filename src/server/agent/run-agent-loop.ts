@@ -11,7 +11,7 @@ import type { OurMessage } from "./types.ts";
 import { summarizeURL } from "./summarize-url.ts";
 import { queryRewriter } from "./query-rewriter.ts";
 // import { checkIsSafe } from "../../lib/guardrails.ts";
-import { searchSerper } from "~/serper.ts";
+import { searchSerper } from "~/server/serper.ts";
 import { bulkCrawlWebsites } from "~/server/scraper.ts";
 
 export async function runAgentLoop(
