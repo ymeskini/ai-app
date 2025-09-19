@@ -1,7 +1,8 @@
 import { streamText, type StreamTextResult } from "ai";
 import * as Sentry from "@sentry/nextjs";
+
 import { type SystemContext } from "./system-context.ts";
-import { model } from "./model.ts";
+import { model } from "../../lib/model.ts";
 
 export function answerQuestion(
   ctx: SystemContext,

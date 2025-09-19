@@ -1,5 +1,5 @@
 import { generateText } from "ai";
-import { summarizationModel } from "./model.ts";
+import { summarizationModel } from "../../lib/model.ts";
 import { cacheWithRedis } from "~/server/redis/redis.ts";
 import type { SystemContext } from "./system-context.ts";
 

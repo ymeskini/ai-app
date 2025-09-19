@@ -1,5 +1,5 @@
 import type { LanguageModelUsage, UIMessage } from "ai";
-import { messageToString } from "./utils.ts";
+import { messageToString } from "../../lib/utils.ts";
 
 type SearchResult = {
   date: string;

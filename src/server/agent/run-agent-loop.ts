@@ -1,17 +1,16 @@
-import { SystemContext } from "./system-context.ts";
-import { getNextAction } from "./get-next-action.ts";
 import {
-  streamText,
   type StreamTextResult,
   type UIMessage,
   type UIMessageStreamWriter,
 } from "ai";
-import { model } from "./model";
+
+import { SystemContext } from "./system-context.ts";
+import { getNextAction } from "./get-next-action.ts";
 import { answerQuestion } from "./answer-question.ts";
 import type { OurMessage } from "./types.ts";
 import { summarizeURL } from "./summarize-url.ts";
 import { queryRewriter } from "./query-rewriter.ts";
-import { checkIsSafe } from "./guardrails.ts";
+// import { checkIsSafe } from "../../lib/guardrails.ts";
 import { searchSerper } from "~/serper.ts";
 import { bulkCrawlWebsites } from "~/server/scraper.ts";
 
@@ -23,35 +22,26 @@ export async function runAgentLoop(
   },
 ): Promise<StreamTextResult<any, string>> {
   const usageDataPartId = crypto.randomUUID();
-  // A persistent container for the state of our system
   const ctx = new SystemContext(messages);
 
   // Guardrail check before entering the main loop
-  const guardrailResult = await checkIsSafe(ctx);
-  if (guardrailResult.classification === "refuse") {
-    // Return a refusal message as a streamText result
-    return streamText({
-      model,
-      system:
-        "You are a content safety guardrail. Refuse to answer unsafe questions.",
-      prompt:
-        guardrailResult.reason ?? "Sorry, I can't help with that request.",
-    });
-  }
+  // const guardrailResult = await checkIsSafe(ctx);
+  // if (guardrailResult.classification === "refuse") {
+  //   // Return a refusal message as a streamText result
+  //   return streamText({
+  //     model,
+  //     system:
+  //       "You are a content safety guardrail. Refuse to answer unsafe questions.",
+  //     prompt:
+  //       guardrailResult.reason ?? "Sorry, I can't help with that request.",
+  //   });
+  // }
 
-  // A loop that continues until we have an answer
-  // or we've taken 10 actions
   while (!ctx.shouldStop()) {
-    // 1. Get the plan and queries
     const { queries } = await queryRewriter(ctx, opts);
-
-    // 2. Execute all queries in parallel
     const searchResultsPromises = queries.map(async (query) => {
       // 1. Search the web
-      const searchResults = await searchSerper(
-        { q: query, num: 5 }, // Reduced from 10 to 5 results per query
-        undefined,
-      );
+      const searchResults = await searchSerper({ q: query, num: 3 }, undefined);
 
       return {
         query,

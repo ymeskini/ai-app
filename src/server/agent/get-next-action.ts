@@ -1,6 +1,6 @@
 import { generateObject } from "ai";
 import { z } from "zod";
-import { model } from "./model";
+import { model } from "../../lib/model";
 import type { SystemContext } from "./system-context";
 
 export const actionSchema = z.object({

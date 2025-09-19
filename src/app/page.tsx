@@ -20,7 +20,7 @@ import {
   SidebarTrigger,
 } from "~/components/ui/sidebar";
 import { Button } from "~/components/ui/button";
-import type { OurMessage } from "~/lib/types.ts";
+import type { OurMessage } from "~/server/agent/types.ts";
 
 export default async function HomePage({
   searchParams,

@@ -1,11 +1,5 @@
 import type { UIMessage } from "ai";
-import { after } from "next/server";
-import {
-  createUIMessageStream,
-  generateId,
-  JsonToSseTransformStream,
-} from "ai";
-import { createResumableStreamContext } from "resumable-stream/ioredis";
+import { createUIMessageStream, createUIMessageStreamResponse } from "ai";
 import { eq } from "drizzle-orm";
 import { Langfuse } from "langfuse";
 import { ulid } from "ulid";
@@ -15,24 +9,12 @@ import { upsertChat } from "~/server/db/queries";
 import { db } from "~/server/db";
 import { chats } from "~/server/db/schema";
 import { env } from "~/env";
-import { streamFromDeepSearch } from "~/lib/deep-search";
-import type { OurMessage } from "~/lib/types";
+import { streamFromDeepSearch } from "~/server/agent/deep-search";
+import type { OurMessage } from "~/server/agent/types";
 import { messageToString } from "~/lib/utils";
-import {
-  getStreamId,
-  setStreamId,
-  streamPublisher,
-  streamSubscriber,
-} from "~/server/redis/redis";
 
 const langfuse = new Langfuse({
   environment: env.NODE_ENV,
-});
-
-const streamContext = createResumableStreamContext({
-  waitUntil: after,
-  publisher: streamPublisher,
-  subscriber: streamSubscriber,
 });
 
 export const maxDuration = 60;
@@ -83,11 +65,9 @@ export async function POST(request: Request) {
     userId: session.user.id,
   });
 
-  const streamId = generateId();
-
-  await setStreamId({ chatId: currentChatId, streamId });
-
-  const streamWithFinish = createUIMessageStream<OurMessage>({
+  // cf. https://ai-sdk.dev/docs/reference/ai-sdk-ui/create-ui-message-stream#createuimessagestream
+  // we use it to have onFinish callback
+  const stream = createUIMessageStream<OurMessage>({
     originalMessages: messages as OurMessage[],
     execute: async ({ writer }) => {
       // If this is a new chat, send the chat ID to the frontend
@@ -128,41 +108,7 @@ export async function POST(request: Request) {
     },
   });
 
-  const resumableStream = await streamContext.resumableStream(streamId, () =>
-    streamWithFinish.pipeThrough(new JsonToSseTransformStream()),
-  );
-
-  return new Response(resumableStream);
-}
-
-export async function GET(request: Request) {
-  const { searchParams } = new URL(request.url);
-  const chatId = searchParams.get("chatId");
-
-  if (!chatId) {
-    return new Response("id is required", { status: 400 });
-  }
-
-  const streamId = await getStreamId(chatId);
-  console.log(streamId);
-
-  if (!streamId) {
-    return new Response("No streams found", { status: 404 });
-  }
-
-  if (!streamId) {
-    return new Response("No streams found", { status: 404 });
-  }
-
-  const emptyDataStream = createUIMessageStream({
-    execute: () => {
-      // This stream will be empty initially
-    },
+  return createUIMessageStreamResponse({
+    stream,
   });
-
-  return new Response(
-    await streamContext.resumableStream(streamId, () =>
-      emptyDataStream.pipeThrough(new JsonToSseTransformStream()),
-    ),
-  );
 }

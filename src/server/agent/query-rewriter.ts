@@ -1,6 +1,7 @@
 import { generateObject } from "ai";
 import { z } from "zod";
-import { model } from "./model";
+
+import { model } from "../../lib/model";
 import { type SystemContext } from "./system-context";
 
 const queryRewriterSchema = z.object({

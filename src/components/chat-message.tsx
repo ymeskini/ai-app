@@ -2,7 +2,7 @@ import ReactMarkdown, { type Components } from "react-markdown";
 import { useState } from "react";
 import { SearchIcon } from "lucide-react";
 
-import type { OurMessage } from "~/lib/types";
+import type { OurMessage } from "~/server/agent/types";
 
 interface ChatMessageProps {
   parts: OurMessage["parts"];

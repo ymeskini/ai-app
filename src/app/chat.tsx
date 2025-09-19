@@ -3,13 +3,13 @@
 import { DefaultChatTransport } from "ai";
 import { useChat } from "@ai-sdk/react";
 import { Loader2, ArrowUp } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { StickToBottom } from "use-stick-to-bottom";
 
 import { ChatMessage } from "~/components/chat-message";
 import { SignInModal } from "~/components/sign-in-modal";
-import type { OurMessage } from "~/lib/types";
+import type { OurMessage } from "~/server/agent/types";
 
 interface ChatProps {
   userName: string;
@@ -25,15 +25,13 @@ export const ChatPage = ({
   initialMessages = [],
 }: ChatProps) => {
   const [showSignInModal, setShowSignInModal] = useState(false);
+  const [input, setInput] = useState("");
   const router = useRouter();
-  const { messages, status, sendMessage, resumeStream } = useChat<OurMessage>({
+  const { messages, status, sendMessage } = useChat<OurMessage>({
     transport: new DefaultChatTransport({
       body: {
         chatId,
       },
-      prepareReconnectToStreamRequest: () => ({
-        api: `/api/chat?chatId=${chatId}`,
-      }),
     }),
     messages: initialMessages,
     onData: (dataPart) => {
@@ -42,8 +40,6 @@ export const ChatPage = ({
       }
     },
   });
-
-  const [input, setInput] = useState("");
 
   const isLoading = status === "streaming";
 
@@ -62,16 +58,6 @@ export const ChatPage = ({
       text: queryInput,
     });
   };
-
-  useEffect(() => {
-    if (true) {
-      resumeStream().catch((error) => {
-        console.error("Failed to resume stream:", error);
-      });
-    }
-    // We want to disable the exhaustive deps rule here because we only want to run this effect once
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   return (
     <>
