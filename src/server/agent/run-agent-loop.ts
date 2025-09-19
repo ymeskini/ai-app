@@ -21,7 +21,6 @@ export async function runAgentLoop(
     writeMessagePart?: UIMessageStreamWriter<OurMessage>["write"];
   },
 ): Promise<StreamTextResult<any, string>> {
-  const usageDataPartId = crypto.randomUUID();
   const ctx = new SystemContext(messages);
 
   // Guardrail check before entering the main loop
@@ -152,21 +151,6 @@ export async function runAgentLoop(
         type: "data-new-action",
         data: nextAction,
       });
-      // Send token usage annotation
-      const usages = ctx.getUsages();
-      if (usages.length > 0) {
-        const totalTokens = usages.reduce(
-          (sum, u) => sum + (u.totalTokens || 0),
-          0,
-        );
-        opts.writeMessagePart({
-          id: usageDataPartId,
-          type: "data-usage",
-          data: {
-            totalTokens,
-          },
-        });
-      }
     }
 
     if (nextAction.type === "answer") {

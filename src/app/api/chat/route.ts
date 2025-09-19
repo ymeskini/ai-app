@@ -84,8 +84,7 @@ export async function POST(request: Request) {
       const result = await streamFromDeepSearch({
         messages,
         langfuseTraceId: trace.id,
-        // eslint-disable-next-line @typescript-eslint/unbound-method
-        writeMessagePart: writer.write,
+        writeMessagePart: writer.write.bind(writer),
       });
 
       writer.merge(result.toUIMessageStream());
