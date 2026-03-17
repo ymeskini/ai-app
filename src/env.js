@@ -7,8 +7,8 @@ export const env = createEnv({
    * isn't built with invalid env vars.
    */
   server: {
-    REDIS_URL: z.string().url(),
-    DATABASE_URL: z.string().url(),
+    REDIS_URL: z.url(),
+    DATABASE_URL: z.url(),
     NODE_ENV: z
       .enum(["development", "test", "production"])
       .default("development"),
@@ -24,7 +24,7 @@ export const env = createEnv({
     SEARCH_RESULTS_COUNT: z.coerce.number().default(3),
     LANGFUSE_SECRET_KEY: z.string(),
     LANGFUSE_PUBLIC_KEY: z.string(),
-    LANGFUSE_BASEURL: z.string().url(),
+    LANGFUSE_BASEURL: z.url(),
   },
 
   /**
