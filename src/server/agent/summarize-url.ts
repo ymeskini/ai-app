@@ -1,7 +1,6 @@
 import { generateText } from "ai";
 import { summarizationModel } from "../../lib/model.ts";
 import { cacheWithRedis } from "~/server/redis/redis.ts";
-import type { SystemContext } from "./system-context.ts";
 
 type SummarizeURLArgs = {
   conversation: string;
@@ -13,7 +12,6 @@ type SummarizeURLArgs = {
   };
   query: string;
   langfuseTraceId?: string;
-  ctx?: SystemContext;
 };
 
 // eslint-disable-next-line @typescript-eslint/no-unsafe-call
@@ -74,10 +72,6 @@ Critical Reminder: If content lacks a specific aspect of the research topic, cle
           }
         : undefined,
     });
-
-    if (opts.ctx && usage) {
-      opts.ctx.reportUsage("summarize-url", usage);
-    }
 
     return text;
   },

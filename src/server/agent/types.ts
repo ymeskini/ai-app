@@ -1,25 +1,10 @@
-import type { UIMessage } from "ai";
-import type { Action } from "./get-next-action.ts";
-
-type Source = {
-  title: string;
-  url: string;
-  snippet: string;
-  favicon?: string;
-};
+import type { InferUITools, UIMessage } from "ai";
+import type { searchWebTool } from "./run-agent-loop.ts";
 
 export type OurMessage = UIMessage<
   never,
-  {
-    "new-action": Action;
-    sources: Source[];
-    usage: {
-      totalTokens: number;
-    };
-    "new-chat-created": {
-      chatId: string;
-    };
-  }
+  { "new-chat-created": { chatId: string } },
+  InferUITools<{ searchWeb: typeof searchWebTool }>
 >;
 
 export type GuardrailResult = {

@@ -84,7 +84,6 @@ export async function POST(request: Request) {
       const result = await streamFromDeepSearch({
         messages,
         langfuseTraceId: trace.id,
-        writeMessagePart: writer.write.bind(writer),
       });
 
       writer.merge(result.toUIMessageStream());

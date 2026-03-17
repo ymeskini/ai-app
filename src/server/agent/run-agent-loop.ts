@@ -1,58 +1,77 @@
 import {
-  type StreamTextResult,
+  ToolLoopAgent,
+  tool,
+  stepCountIs,
+  convertToModelMessages,
   type UIMessage,
-  type UIMessageStreamWriter,
+  type StreamTextResult,
+  type InferAgentUIMessage,
+  type ModelMessage,
 } from "ai";
+import { z } from "zod";
 
-import { SystemContext } from "./system-context.ts";
-import { getNextAction } from "./get-next-action.ts";
-import { answerQuestion } from "./answer-question.ts";
-import type { OurMessage } from "./types.ts";
-import { summarizeURL } from "./summarize-url.ts";
-import { queryRewriter } from "./query-rewriter.ts";
-// import { checkIsSafe } from "../../lib/guardrails.ts";
+import { model } from "../../lib/model.ts";
 import { searchSerper } from "~/server/serper.ts";
 import { bulkCrawlWebsites } from "~/server/scraper.ts";
+import { summarizeURL } from "./summarize-url.ts";
 
-export async function runAgentLoop(
-  messages: UIMessage[],
-  opts: {
-    langfuseTraceId?: string;
-    writeMessagePart?: UIMessageStreamWriter<OurMessage>["write"];
-  },
-): Promise<StreamTextResult<any, string>> {
-  const ctx = new SystemContext(messages);
+type Source = {
+  title: string;
+  url: string;
+  snippet: string;
+  favicon?: string;
+};
 
-  // Guardrail check before entering the main loop
-  // const guardrailResult = await checkIsSafe(ctx);
-  // if (guardrailResult.classification === "refuse") {
-  //   // Return a refusal message as a streamText result
-  //   return streamText({
-  //     model,
-  //     system:
-  //       "You are a content safety guardrail. Refuse to answer unsafe questions.",
-  //     prompt:
-  //       guardrailResult.reason ?? "Sorry, I can't help with that request.",
-  //   });
-  // }
+function messagesToConversationString(messages: ModelMessage[]): string {
+  return messages
+    .filter((m) => m.role === "user" || m.role === "assistant")
+    .map((m) => {
+      const role = m.role === "user" ? "User" : "Assistant";
+      const content =
+        typeof m.content === "string"
+          ? m.content
+          : Array.isArray(m.content)
+            ? m.content
+                .filter((p) => p.type === "text")
+                .map((p) => (p as { type: "text"; text: string }).text)
+                .join("")
+            : "";
+      return `<${role}>${content}</${role}>`;
+    })
+    .join("\n\n");
+}
 
-  while (!ctx.shouldStop()) {
-    const { queries } = await queryRewriter(ctx, opts);
-    const searchResultsPromises = queries.map(async (query) => {
-      // 1. Search the web
-      const searchResults = await searchSerper({ q: query, num: 3 }, undefined);
+export const searchWebTool = tool({
+  description:
+    "Search the web for information to answer the user's question. Use this when you need to find relevant information.",
+  inputSchema: z.object({
+    title: z
+      .string()
+      .describe(
+        "Concise title for this search step, e.g. 'Searching for X'. Be extremely concise.",
+      ),
+    reasoning: z.string().describe("Why you are performing this search"),
+    queries: z
+      .array(z.string())
+      .min(1)
+      .max(5)
+      .describe(
+        "3-5 specific and focused search queries to execute in parallel",
+      ),
+  }),
+  execute: async ({ queries }, { messages }) => {
+    const conversation = messagesToConversationString(messages);
 
-      return {
-        query,
-        results: searchResults.organic,
-      };
-    });
+    // Search in parallel for all queries
+    const allSearchResults = await Promise.all(
+      queries.map(async (query) => {
+        const results = await searchSerper({ q: query, num: 3 }, undefined);
+        return { query, results: results.organic };
+      }),
+    );
 
-    // 3. Wait for all search results
-    const allSearchResults = await Promise.all(searchResultsPromises);
-
-    // 4. Deduplicate sources by URL
-    const uniqueSources = Array.from(
+    // Deduplicate sources by URL
+    const uniqueSources: Source[] = Array.from(
       new Map(
         allSearchResults
           .flatMap((sr) => sr.results)
@@ -68,100 +87,112 @@ export async function runAgentLoop(
       ).values(),
     );
 
-    // 5. Send unique sources to frontend
-    if (opts.writeMessagePart) {
-      opts.writeMessagePart({
-        type: "data-sources",
-        data: uniqueSources,
-      });
-    }
+    // Scrape and summarize all results
+    const processedResults = (
+      await Promise.all(
+        allSearchResults.map(async ({ query, results }) => {
+          const urls = results.map((r) => r.link);
+          const crawlResults = await bulkCrawlWebsites({ urls });
 
-    // 6. Process each query's results
-    const processPromises = allSearchResults.map(async ({ query, results }) => {
-      const searchResultUrls = results.map((r) => r.link);
+          return Promise.all(
+            results.map(async (result) => {
+              const crawlData = crawlResults.success
+                ? crawlResults.results.find((cr) => cr.url === result.link)
+                : undefined;
 
-      // Scrape the results
-      const crawlResults = await bulkCrawlWebsites({ urls: searchResultUrls });
+              const scrapedContent = crawlData?.result.success
+                ? crawlData.result.data
+                : "Failed to scrape.";
 
-      // Summarize each scraped result in parallel
-      const summaries = await Promise.all(
-        results.map(async (result) => {
-          const crawlData = crawlResults.success
-            ? crawlResults.results.find((cr) => cr.url === result.link)
-            : undefined;
+              if (scrapedContent === "Failed to scrape.") {
+                return {
+                  query,
+                  title: result.title,
+                  url: result.link,
+                  snippet: result.snippet,
+                  summary:
+                    "Failed to scrape, so no summary could be generated.",
+                  date: result.date ?? new Date().toISOString(),
+                };
+              }
 
-          const scrapedContent = crawlData?.result.success
-            ? crawlData.result.data
-            : "Failed to scrape.";
+              const summary = await summarizeURL({
+                conversation,
+                scrapedContent,
+                searchMetadata: {
+                  date: result.date ?? new Date().toISOString(),
+                  title: result.title,
+                  url: result.link,
+                },
+                query,
+              });
 
-          if (scrapedContent === "Failed to scrape.") {
-            return {
-              ...result,
-              summary: "Failed to scrape, so no summary could be generated.",
-            };
-          }
-
-          const summary = await summarizeURL({
-            conversation: ctx.getMessageHistory(),
-            scrapedContent,
-            searchMetadata: {
-              date: result.date ?? new Date().toISOString(),
-              title: result.title,
-              url: result.link,
-            },
-            query,
-            langfuseTraceId: opts.langfuseTraceId,
-            ctx,
-          });
-
-          return {
-            ...result,
-            summary,
-          };
+              return {
+                query,
+                title: result.title,
+                url: result.link,
+                snippet: result.snippet,
+                summary,
+                date: result.date ?? new Date().toISOString(),
+              };
+            }),
+          );
         }),
-      );
+      )
+    ).flat();
 
-      // Report the summaries to the system context
-      ctx.reportSearch({
-        query,
-        results: summaries.map((summaryResult) => ({
-          date: summaryResult.date ?? new Date().toISOString(),
-          title: summaryResult.title,
-          url: summaryResult.link,
-          snippet: summaryResult.snippet,
-          summary: summaryResult.summary,
-        })),
-      });
-    });
+    return {
+      sources: uniqueSources,
+      results: processedResults,
+    };
+  },
+});
 
-    // 7. Wait for all processing to complete
-    await Promise.all(processPromises);
+const agentInstructions = `You are a research assistant that answers questions by searching the web.
 
-    // 8. Decide whether to continue or answer
-    const nextAction = await getNextAction(ctx, opts);
+PROCESS:
+1. Analyze the user's question and create a research plan
+2. Search for information using the searchWeb tool with 3-5 specific queries
+3. Review the results and determine if you have enough information
+4. If not, search again with refined queries targeting information gaps
+5. Once you have sufficient information, provide a comprehensive answer
 
-    // Store the feedback in the system context only if it exists
-    if (nextAction.feedback) {
-      ctx.setLastFeedback(nextAction.feedback);
-    }
+When answering:
+- Be thorough but concise
+- Always cite your sources using markdown links
+- Format URLs as markdown links using [title](url)
+- Never include raw URLs`;
 
-    // Send the action as an annotation if writeMessageAnnotation is provided
-    if (opts.writeMessagePart) {
-      opts.writeMessagePart({
-        type: "data-new-action",
-        data: nextAction,
-      });
-    }
+// Exported for type inference only
+export const deepSearchAgent = new ToolLoopAgent({
+  model,
+  instructions: agentInstructions,
+  tools: { searchWeb: searchWebTool },
+  stopWhen: [stepCountIs(4)],
+});
 
-    if (nextAction.type === "answer") {
-      return answerQuestion(ctx, { isFinal: false, ...opts });
-    }
+export type DeepSearchUIMessage = InferAgentUIMessage<typeof deepSearchAgent>;
 
-    // We increment the step counter
-    ctx.incrementStep();
-  }
+export async function runAgentLoop(
+  messages: UIMessage[],
+  opts: {
+    langfuseTraceId?: string;
+  },
+): Promise<StreamTextResult<any, any>> {
+  const agent = new ToolLoopAgent({
+    model,
+    instructions: agentInstructions,
+    tools: { searchWeb: searchWebTool },
+    stopWhen: [stepCountIs(4)],
+    experimental_telemetry: opts.langfuseTraceId
+      ? {
+          isEnabled: true,
+          functionId: "deep-search",
+          metadata: { langfuseTraceId: opts.langfuseTraceId },
+        }
+      : undefined,
+  });
 
-  // If we've taken 10 actions and haven't answered yet,
-  // we ask the LLM to give its best attempt at an answer
-  return answerQuestion(ctx, { isFinal: true, ...opts });
+  const modelMessages = await convertToModelMessages(messages);
+  return agent.stream({ messages: modelMessages });
 }

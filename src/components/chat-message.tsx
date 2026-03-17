@@ -92,13 +92,19 @@ const Sources = ({ sources }: { sources: Source[] }) => {
 const ReasoningSteps = ({ parts }: { parts: OurMessage["parts"] }) => {
   const [openStep, setOpenStep] = useState<number | null>(null);
 
-  if (parts.length === 0) return null;
+  const searchSteps = parts.filter((p) => p.type === "tool-searchWeb");
+  if (searchSteps.length === 0) return null;
 
   return (
     <div className="mb-4 w-full">
       <ul className="space-y-1">
-        {parts.map((part, index) => {
+        {searchSteps.map((part, index) => {
+          if (part.type !== "tool-searchWeb") return null;
           const isOpen = openStep === index;
+          const title = part.input?.title ?? "Searching...";
+          const sources =
+            part.state === "output-available" ? part.output?.sources : null;
+
           return (
             <li key={index} className="relative">
               <button
@@ -118,37 +124,24 @@ const ReasoningSteps = ({ parts }: { parts: OurMessage["parts"] }) => {
                 >
                   {index + 1}
                 </span>
-                {part.type === "data-new-action" ? part.data.title : "Sources"}
+                {title}
               </button>
               <div className={`${isOpen ? "mt-2" : "hidden"}`}>
                 {isOpen && (
                   <div className="rounded-lg bg-gray-50 px-4 py-3">
-                    {part.type === "data-new-action" ? (
-                      <>
-                        <div className="text-sm text-gray-700">
-                          <Markdown>{part.data.reasoning}</Markdown>
-                        </div>
-                        {part.data.type === "continue" && (
-                          <div className="mt-3 flex flex-col gap-2 text-sm">
-                            <div className="flex items-center gap-2 text-blue-700">
-                              <SearchIcon className="size-4" />
-                              <span className="font-medium">
-                                Continuing search...
-                              </span>
-                            </div>
-                            <div className="mt-2 border-l-4 border-blue-200 pl-4">
-                              <div className="font-medium text-gray-900">
-                                Feedback:
-                              </div>
-                              <div className="text-gray-700">
-                                <Markdown>{part.data.feedback!}</Markdown>
-                              </div>
-                            </div>
-                          </div>
-                        )}
-                      </>
-                    ) : part.type === "data-sources" ? (
-                      <Sources sources={part.data} />
+                    {part.input?.reasoning && (
+                      <div className="mb-3 text-sm text-gray-700">
+                        <Markdown>{part.input.reasoning}</Markdown>
+                      </div>
+                    )}
+                    {part.state === "input-available" ||
+                    part.state === "input-streaming" ? (
+                      <div className="flex items-center gap-2 text-sm text-blue-700">
+                        <SearchIcon className="size-4" />
+                        <span className="font-medium">Searching...</span>
+                      </div>
+                    ) : sources ? (
+                      <Sources sources={sources} />
                     ) : null}
                   </div>
                 )}
