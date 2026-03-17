@@ -4,7 +4,6 @@ import { DefaultChatTransport } from "ai";
 import { useChat } from "@ai-sdk/react";
 import { Loader2, ArrowUp } from "lucide-react";
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { StickToBottom } from "use-stick-to-bottom";
 
 import { ChatMessage } from "~/components/chat-message";
@@ -26,7 +25,6 @@ export const ChatPage = ({
 }: ChatProps) => {
   const [showSignInModal, setShowSignInModal] = useState(false);
   const [input, setInput] = useState("");
-  const router = useRouter();
   const { messages, status, sendMessage } = useChat<OurMessage>({
     transport: new DefaultChatTransport({
       body: {
@@ -36,7 +34,9 @@ export const ChatPage = ({
     messages: initialMessages,
     onData: (dataPart) => {
       if (dataPart.type === "data-new-chat-created") {
-        router.push(`?id=${dataPart.data.chatId}`);
+        // we don't use router as it was triggering a rerender
+        // that was disconnecting from the stream response
+        window.history.replaceState(null, "", `?id=${dataPart.data.chatId}`);
       }
     },
   });

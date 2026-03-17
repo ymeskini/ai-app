@@ -24,7 +24,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "~/components/ui/alert-dialog";
-import { useRouter } from "next/navigation";
 
 interface ChatItemProps {
   chat: {
@@ -37,7 +36,6 @@ interface ChatItemProps {
 export function ChatItem({ chat, isActive }: ChatItemProps) {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
-  const router = useRouter();
 
   const handleDelete = async () => {
     setIsDeleting(true);
@@ -49,21 +47,16 @@ export function ChatItem({ chat, isActive }: ChatItemProps) {
       if (!response.ok) {
         throw new Error("Failed to delete chat");
       }
-
-      // If we're deleting the current chat, redirect to home
-      if (isActive) {
-        router.push("/");
-      } else {
-        // Otherwise just refresh the page to update the sidebar
-        router.refresh();
-      }
     } catch (error) {
       console.error("Error deleting chat:", error);
-      // You might want to show a toast notification here
     } finally {
       setIsDeleting(false);
       setIsDeleteDialogOpen(false);
     }
+  };
+
+  const handleDialogClosed = () => {
+    setIsDeleteDialogOpen(false);
   };
 
   return (
@@ -84,12 +77,12 @@ export function ChatItem({ chat, isActive }: ChatItemProps) {
               showOnHover
               className="text-gray-500 hover:bg-gray-100 hover:text-gray-700"
             >
-              <MoreHorizontal className="h-4 w-4" />
+              <MoreHorizontal className="size-4" />
               <span className="sr-only">More</span>
             </SidebarMenuAction>
           </DropdownMenuTrigger>
           <DropdownMenuContent
-            className="min-w-[8rem] border-gray-200 bg-white"
+            className="min-w-32 border-gray-200 bg-white"
             align="start"
           >
             <DropdownMenuItem
@@ -97,7 +90,7 @@ export function ChatItem({ chat, isActive }: ChatItemProps) {
               onClick={() => setIsDeleteDialogOpen(true)}
               className="text-red-600 hover:bg-red-50 hover:text-red-700"
             >
-              <Trash2 className="h-4 w-4" />
+              <Trash2 className="size-4" />
               Delete
             </DropdownMenuItem>
           </DropdownMenuContent>
@@ -108,7 +101,10 @@ export function ChatItem({ chat, isActive }: ChatItemProps) {
         open={isDeleteDialogOpen}
         onOpenChange={setIsDeleteDialogOpen}
       >
-        <AlertDialogContent className="border-gray-200 bg-white">
+        <AlertDialogContent
+          className="border-gray-200 bg-white"
+          onCloseAutoFocus={handleDialogClosed}
+        >
           <AlertDialogHeader>
             <AlertDialogTitle className="text-gray-900">
               Delete Chat

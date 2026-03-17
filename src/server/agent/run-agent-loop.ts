@@ -148,7 +148,10 @@ export const searchWebTool = tool({
   },
 });
 
-const agentInstructions = `You are a research assistant that answers questions by searching the web.
+function buildAgentInstructions() {
+  return `You are a research assistant that answers questions by searching the web.
+
+Current date and time: ${new Date().toLocaleString()}
 
 PROCESS:
 1. Analyze the user's question and create a research plan
@@ -162,11 +165,12 @@ When answering:
 - Always cite your sources using markdown links
 - Format URLs as markdown links using [title](url)
 - Never include raw URLs`;
+}
 
 // Exported for type inference only
 export const deepSearchAgent = new ToolLoopAgent({
   model,
-  instructions: agentInstructions,
+  instructions: buildAgentInstructions(),
   tools: { searchWeb: searchWebTool },
   stopWhen: [stepCountIs(4)],
 });
@@ -181,7 +185,7 @@ export async function runAgentLoop(
 ): Promise<StreamTextResult<any, any>> {
   const agent = new ToolLoopAgent({
     model,
-    instructions: agentInstructions,
+    instructions: buildAgentInstructions(),
     tools: { searchWeb: searchWebTool },
     stopWhen: [stepCountIs(4)],
     experimental_telemetry: opts.langfuseTraceId
