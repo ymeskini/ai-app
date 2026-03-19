@@ -2,13 +2,19 @@
 
 import { DefaultChatTransport } from "ai";
 import { useChat } from "@ai-sdk/react";
-import { Loader2, ArrowUp } from "lucide-react";
 import { useState } from "react";
 import { StickToBottom } from "use-stick-to-bottom";
 
+import {
+  PromptInput,
+  PromptInputTextarea,
+  PromptInputFooter,
+  PromptInputSubmit,
+  type PromptInputMessage,
+} from "~/components/ai-elements/prompt-input";
 import { ChatMessage } from "~/components/chat-message";
 import { SignInModal } from "~/components/sign-in-modal";
-import type { OurMessage } from "~/server/agent/types";
+import type { OurDataParts, OurMessage } from "~/server/agent/types";
 
 interface ChatProps {
   userName: string;
@@ -24,8 +30,7 @@ export const ChatPage = ({
   initialMessages = [],
 }: ChatProps) => {
   const [showSignInModal, setShowSignInModal] = useState(false);
-  const [input, setInput] = useState("");
-  const { messages, status, sendMessage } = useChat<OurMessage>({
+  const { messages, status, sendMessage, stop } = useChat<OurMessage>({
     transport: new DefaultChatTransport({
       body: {
         chatId,
@@ -33,29 +38,21 @@ export const ChatPage = ({
     }),
     messages: initialMessages,
     onData: (dataPart) => {
-      if (dataPart.type === "data-new-chat-created") {
-        // we don't use router as it was triggering a rerender
-        // that was disconnecting from the stream response
-        window.history.replaceState(null, "", `?id=${dataPart.data.chatId}`);
-      }
+      // we don't use router as it was triggering a rerender
+      // that was disconnecting from the stream response
+      const { chatId } = dataPart.data as OurDataParts["new-chat-created"];
+      window.history.replaceState(null, "", `?id=${chatId}`);
     },
   });
 
-  const isLoading = status === "streaming";
-
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-
+  const handleSubmit = async (message: PromptInputMessage) => {
     if (!isAuthenticated) {
       setShowSignInModal(true);
       return;
     }
 
-    const queryInput = input;
-
-    setInput("");
     await sendMessage({
-      text: queryInput,
+      text: message.text,
     });
   };
 
@@ -85,30 +82,20 @@ export const ChatPage = ({
           </StickToBottom.Content>
         </StickToBottom>
         <div className="px-4 py-4">
-          <form onSubmit={handleSubmit} className="mx-auto max-w-[65ch]">
-            <div className="relative flex items-center">
-              <input
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                placeholder="Say something..."
-                autoFocus
-                aria-label="Chat input"
-                className="w-full rounded-full border border-gray-300 bg-white px-4 py-2 pr-12 text-gray-900 placeholder-gray-500 focus:border-gray-400 focus:ring-2 focus:ring-blue-400 focus:outline-hidden disabled:opacity-50"
-                disabled={isLoading}
-              />
-              <button
-                type="submit"
-                disabled={isLoading || !input.trim()}
-                className="absolute right-2 flex h-8 w-8 items-center justify-center rounded-full bg-gray-900 text-white transition-colors hover:bg-gray-800 focus:ring-2 focus:ring-blue-400 focus:outline-hidden disabled:opacity-50 disabled:hover:bg-gray-900"
-              >
-                {isLoading ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <ArrowUp className="h-4 w-4" />
-                )}
-              </button>
-            </div>
-          </form>
+          <div className="mx-auto max-w-[65ch]">
+            <PromptInput
+              onSubmit={handleSubmit}
+              accept="image/*"
+              multiple
+              className="rounded-xl"
+            >
+              <PromptInputTextarea autoFocus placeholder="Say something..." />
+              <PromptInputFooter>
+                <div />
+                <PromptInputSubmit status={status} onStop={stop} />
+              </PromptInputFooter>
+            </PromptInput>
+          </div>
         </div>
       </div>
 

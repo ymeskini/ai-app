@@ -1,9 +1,13 @@
 import type { InferUITools, UIMessage } from "ai";
 import type { searchWebTool } from "./run-agent-loop.ts";
 
+export type OurDataParts = {
+  "new-chat-created": { chatId: string };
+};
+
 export type OurMessage = UIMessage<
   never,
-  { "new-chat-created": { chatId: string } },
+  OurDataParts,
   InferUITools<{ searchWeb: typeof searchWebTool }>
 >;
 
