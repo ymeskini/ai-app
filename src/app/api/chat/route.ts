@@ -7,7 +7,7 @@ import { ulid } from "ulid";
 import { auth } from "~/server/auth";
 import { upsertChat } from "~/server/db/queries";
 import { db } from "~/server/db";
-import { chats } from "~/server/db/schema";
+import { chats } from "~/server/db/schemas";
 import { env } from "~/env";
 import { streamFromDeepSearch } from "~/server/agent/deep-search";
 import type { OurMessage } from "~/server/agent/types";

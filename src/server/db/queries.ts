@@ -3,7 +3,7 @@ import { eq, and } from "drizzle-orm";
 import type { UIMessage } from "ai";
 
 import { db } from "./index.ts";
-import { chats, messages } from "./schema.ts";
+import { chats, messages } from "./schemas";
 
 export const upsertChat = async (opts: {
   userId: string;
