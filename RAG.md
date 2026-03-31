@@ -11,3 +11,23 @@ Process request:
 2. Query the Vector DB Embeddings wihthin a certain distance of that query
 3. Pass on the Matched Context to the Generative AI
 4. Finally, return a Grounded/Informed Response
+
+# Chunking data
+
+There are different strategies to chunk data for a RAG system, we need to chunk data to improve performance and accuracy of queries:
+- Length bases chunking
+- Simple sentence/paragraph splitting
+- Recursive character level chunking
+- Document structure based chunking
+
+We'll use document structure chunking in our project with `LangChain`
+We have the mdn markdown files in `@mdn` folder and to chunk them we run the script located at `@scripts/chunk-mdn-docs.ts`
+
+
+# Embedding model
+
+Criterias:
+- Accuracy: how well does it capture semantic meaning?
+- Dimensionality: the higher the more nuance captured
+- Domain suitability: some trained on domain specific content
+- Speed and cost: choose a balance to fit your needs
