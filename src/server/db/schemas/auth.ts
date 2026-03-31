@@ -5,14 +5,15 @@ import {
   primaryKey,
   text,
   timestamp,
+  uuid,
   varchar,
   boolean,
 } from "drizzle-orm/pg-core";
 import type { AdapterAccount } from "@auth/core/adapters";
-import { createTable, ulidPrimaryKey } from "./table";
+import { createTable, primaryId } from "./table";
 
 export const users = createTable("user", {
-  id: ulidPrimaryKey(),
+  id: primaryId(),
   name: varchar("name", { length: 255 }),
   email: varchar("email", { length: 255 }).notNull(),
   emailVerified: timestamp("email_verified", {
@@ -30,7 +31,7 @@ export const usersRelations = relations(users, ({ many }) => ({
 export const accounts = createTable(
   "account",
   {
-    userId: varchar("user_id", { length: 26 })
+    userId: uuid("user_id")
       .notNull()
       .references(() => users.id),
     type: varchar("type", { length: 255 })
@@ -66,7 +67,7 @@ export const sessions = createTable(
     sessionToken: varchar("session_token", { length: 255 })
       .notNull()
       .primaryKey(),
-    userId: varchar("user_id", { length: 26 })
+    userId: uuid("user_id")
       .notNull()
       .references(() => users.id),
     expires: timestamp("expires", {

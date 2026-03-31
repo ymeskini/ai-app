@@ -1,5 +1,4 @@
-import { pgTableCreator, varchar } from "drizzle-orm/pg-core";
-import { ulid } from "ulid";
+import { pgTableCreator, uuid } from "drizzle-orm/pg-core";
 
 /**
  * This is an example of how to use the multi-project schema feature of Drizzle ORM. Use the same
@@ -10,11 +9,7 @@ import { ulid } from "ulid";
 export const createTable = pgTableCreator((name) => `ai-app-template_${name}`);
 
 /**
- * Reusable ULID primary key column. ULIDs are always 26 chars so varchar(26) is exact.
- * The value is auto-generated on insert if not provided.
+ * Reusable UUID primary key column backed by PostgreSQL's gen_random_uuid().
  */
-export const ulidPrimaryKey = (columnName = "id") =>
-  varchar(columnName, { length: 26 })
-    .notNull()
-    .primaryKey()
-    .$defaultFn(() => ulid());
+export const primaryId = (columnName = "id") =>
+  uuid(columnName).primaryKey().defaultRandom();

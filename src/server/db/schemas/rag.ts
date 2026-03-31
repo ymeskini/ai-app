@@ -4,10 +4,10 @@ import {
   integer,
   text,
   timestamp,
-  varchar,
+  uuid,
   vector,
 } from "drizzle-orm/pg-core";
-import { createTable, ulidPrimaryKey } from "./table";
+import { createTable, primaryId } from "./table";
 
 const tsvector = customType<{ data: string; driverData: string }>({
   dataType() {
@@ -16,7 +16,7 @@ const tsvector = customType<{ data: string; driverData: string }>({
 });
 
 export const documents = createTable("document", {
-  id: ulidPrimaryKey(),
+  id: primaryId(),
   title: text("title").notNull(),
   slug: text("slug"),
   sourceFilePath: text("source_file_path").notNull(),
@@ -30,7 +30,7 @@ export const documents = createTable("document", {
 
 export const chunks = createTable("chunk", {
   id: text("id").primaryKey(), // e.g., "mdn-docs/closures/index.md_chunk_0"
-  documentId: varchar("document_id", { length: 26 })
+  documentId: uuid("document_id")
     .references(() => documents.id, { onDelete: "cascade" })
     .notNull(),
   content: text("content").notNull(),

@@ -1,11 +1,18 @@
 import { relations, sql } from "drizzle-orm";
-import { index, integer, json, timestamp, varchar } from "drizzle-orm/pg-core";
-import { createTable, ulidPrimaryKey } from "./table";
+import {
+  index,
+  integer,
+  json,
+  timestamp,
+  uuid,
+  varchar,
+} from "drizzle-orm/pg-core";
+import { createTable, primaryId } from "./table";
 import { users } from "./auth";
 
 export const chats = createTable("chat", {
-  id: ulidPrimaryKey(),
-  userId: varchar("user_id", { length: 26 })
+  id: primaryId(),
+  userId: uuid("user_id")
     .notNull()
     .references(() => users.id),
   title: varchar("title", { length: 255 }).notNull(),
@@ -31,8 +38,8 @@ export const chatsRelations = relations(chats, ({ one, many }) => ({
 export const messages = createTable(
   "message",
   {
-    id: ulidPrimaryKey(),
-    chatId: varchar("chat_id", { length: 26 })
+    id: primaryId(),
+    chatId: uuid("chat_id")
       .notNull()
       .references(() => chats.id),
     role: varchar("role", { length: 255 }).notNull(),
