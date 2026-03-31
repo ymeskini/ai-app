@@ -1,30 +1,26 @@
 {
   "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "npm run format:write 2>/dev/null || true"
+          },
+          {
+            "type": "command",
+            "command": "npm run lint:fix 2>/dev/null || true"
+          }
+        ]
+      }
+    ],
     "Stop": [
       {
-        "matcher": "Edit",
         "hooks": [
           {
             "type": "command",
-            "command": "npm run format:write"
-          }
-        ]
-      },
-      {
-        "matcher": "Edit",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "npm run typecheck"
-          }
-        ]
-      },
-      {
-        "matcher": "Edit",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "npm run lint"
+            "command": "npm run typecheck 2>/dev/null || true"
           }
         ]
       }

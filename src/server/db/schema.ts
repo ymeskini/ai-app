@@ -9,6 +9,8 @@ import {
   varchar,
   json,
   boolean,
+  customType,
+  vector,
 } from "drizzle-orm/pg-core";
 import type { AdapterAccount } from "@auth/core/adapters";
 import type { InferSelectModel, InferInsertModel } from "drizzle-orm";
@@ -159,6 +161,63 @@ export const messagesRelations = relations(messages, ({ one }) => ({
   chat: one(chats, { fields: [messages.chatId], references: [chats.id] }),
 }));
 
+// RAG tables
+
+export const documents = createTable("document", {
+  id: varchar("id", { length: 255 })
+    .notNull()
+    .primaryKey()
+    .$defaultFn(() => ulid()),
+  title: text("title").notNull(),
+  slug: text("slug"),
+  sourceFilePath: text("source_file_path").notNull(),
+  pageType: text("page_type"),
+  sidebar: text("sidebar"),
+  totalChunks: integer("total_chunks").notNull().default(0),
+  processedAt: timestamp("processed_at").defaultNow().notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// Define tsvector custom type
+const tsvector = customType<{ data: string; driverData: string }>({
+  dataType() {
+    return "tsvector";
+  },
+});
+
+export const chunks = createTable("chunk", {
+  id: text("id").primaryKey(), // e.g., "mdn-docs/closures/index.md_chunk_0"
+  documentId: varchar("document_id", { length: 255 })
+    .references(() => documents.id, { onDelete: "cascade" })
+    .notNull(),
+  content: text("content").notNull(),
+  chunkIndex: integer("chunk_index").notNull(),
+  startLine: integer("start_line"),
+  endLine: integer("end_line"),
+  headingContextText: text("heading_context_text"),
+  headingContextLevel: integer("heading_context_level"),
+  headingLineNumber: integer("heading_line_number"),
+  characterCount: integer("character_count").notNull(),
+  wordCount: integer("word_count").notNull(),
+  embedding: vector("embedding", { dimensions: 1024 }),
+  contextPrefix: text("context_prefix"),
+  searchVector: tsvector("search_vector"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const documentsRelations = relations(documents, ({ many }) => ({
+  chunks: many(chunks),
+}));
+
+export const chunksRelations = relations(chunks, ({ one }) => ({
+  document: one(documents, {
+    fields: [chunks.documentId],
+    references: [documents.id],
+  }),
+}));
+
 export declare namespace DB {
   export type User = InferSelectModel<typeof users>;
   export type NewUser = InferInsertModel<typeof users>;
@@ -179,4 +238,10 @@ export declare namespace DB {
 
   export type Message = InferSelectModel<typeof messages>;
   export type NewMessage = InferInsertModel<typeof messages>;
+
+  export type Document = InferSelectModel<typeof documents>;
+  export type NewDocument = InferInsertModel<typeof documents>;
+
+  export type Chunk = InferSelectModel<typeof chunks>;
+  export type NewChunk = InferInsertModel<typeof chunks>;
 }
