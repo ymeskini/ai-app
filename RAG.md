@@ -31,3 +31,16 @@ Criterias:
 - Dimensionality: the higher the more nuance captured
 - Domain suitability: some trained on domain specific content
 - Speed and cost: choose a balance to fit your needs
+
+We'll use [Voyage model](https://www.voyageai.com/)
+
+
+# Vector DBs for RAG
+
+Most of the DBs we already use in our apps has a support for Vectors:
+
+- Postgres has `pgvector` (also supabase)
+- Redis
+- MongoDB
+
+We'll use Postgres for this project
