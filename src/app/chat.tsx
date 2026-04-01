@@ -2,7 +2,8 @@
 
 import { DefaultChatTransport } from "ai";
 import { useChat } from "@ai-sdk/react";
-import { useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import { useRef, useState } from "react";
 import { StickToBottom } from "use-stick-to-bottom";
 
 import {
@@ -14,6 +15,7 @@ import {
 } from "~/components/ai-elements/prompt-input";
 import { ChatMessage } from "~/components/chat-message";
 import { SignInModal } from "~/components/sign-in-modal";
+import { chatsQueryOptions } from "~/lib/query-options";
 import type { OurDataParts, OurMessage } from "~/server/agent/types";
 
 interface ChatProps {
@@ -30,18 +32,30 @@ export const ChatPage = ({
   initialMessages = [],
 }: ChatProps) => {
   const [showSignInModal, setShowSignInModal] = useState(false);
+  const queryClient = useQueryClient();
+  const chatIdRef = useRef(chatId);
+  const isNewChatRef = useRef(!chatId);
   const { messages, status, sendMessage, stop } = useChat<OurMessage>({
     transport: new DefaultChatTransport({
-      body: {
-        chatId,
-      },
+      // use a function so each request reads the latest chatId from the ref
+      body: () => ({ chatId: chatIdRef.current }),
     }),
     messages: initialMessages,
     onData: (dataPart) => {
       // we don't use router as it was triggering a rerender
       // that was disconnecting from the stream response
-      const { chatId } = dataPart.data as OurDataParts["new-chat-created"];
-      window.history.replaceState(null, "", `?id=${chatId}`);
+      const { chatId: newChatId } =
+        dataPart.data as OurDataParts["new-chat-created"];
+      chatIdRef.current = newChatId;
+      window.history.replaceState(null, "", `?id=${newChatId}`);
+    },
+    onFinish: () => {
+      if (isNewChatRef.current) {
+        isNewChatRef.current = false;
+        void queryClient.invalidateQueries({
+          queryKey: chatsQueryOptions.queryKey,
+        });
+      }
     },
   });
 

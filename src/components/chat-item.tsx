@@ -1,8 +1,11 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { MoreHorizontal, Trash2 } from "lucide-react";
+import { useQueryClient } from "@tanstack/react-query";
+import { chatsQueryOptions } from "~/lib/query-options.ts";
 import {
   SidebarMenuButton,
   SidebarMenuItem,
@@ -36,6 +39,8 @@ interface ChatItemProps {
 export function ChatItem({ chat, isActive }: ChatItemProps) {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const queryClient = useQueryClient();
+  const router = useRouter();
 
   const handleDelete = async () => {
     setIsDeleting(true);
@@ -46,6 +51,14 @@ export function ChatItem({ chat, isActive }: ChatItemProps) {
 
       if (!response.ok) {
         throw new Error("Failed to delete chat");
+      }
+
+      await queryClient.invalidateQueries({
+        queryKey: chatsQueryOptions.queryKey,
+      });
+
+      if (isActive) {
+        router.push("/");
       }
     } catch (error) {
       console.error("Error deleting chat:", error);
