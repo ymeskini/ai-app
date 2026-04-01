@@ -96,10 +96,6 @@ export const deleteChat = async (opts: { userId: string; chatId: string }) => {
       return { success: false, error: "CHAT_NOT_FOUND" as const };
     }
 
-    // Delete all messages first (due to foreign key constraint)
-    await db.delete(messages).where(eq(messages.chatId, chatId));
-
-    // Delete the chat
     await db.delete(chats).where(eq(chats.id, chatId));
 
     Sentry.addBreadcrumb({

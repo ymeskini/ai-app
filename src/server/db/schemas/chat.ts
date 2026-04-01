@@ -41,7 +41,7 @@ export const messages = createTable(
     id: primaryId(),
     chatId: uuid("chat_id")
       .notNull()
-      .references(() => chats.id),
+      .references(() => chats.id, { onDelete: "cascade" }),
     role: varchar("role", { length: 255 }).notNull(),
     parts: json("parts").notNull(),
     order: integer("order").notNull(),
