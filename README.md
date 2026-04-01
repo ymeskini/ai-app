@@ -33,6 +33,12 @@ The easiest way to run the entire application stack:
    npm run dev
    ```
 
+4. **First-time database setup** (once after initial start):
+   ```bash
+   npm run db:setup
+   ```
+   This enables the `pgvector` extension (required for vector/embedding columns) and pushes the schema to the database. You only need to run this once — or again if you reset the database.
+
 That's it! The dev command automatically:
 - **Starts services** - PostgreSQL and Redis via docker compose
 - **Waits for services** - Ensures they're healthy before proceeding
@@ -62,6 +68,7 @@ That's it! The dev command automatically:
 - `npm run preview` - Build and start production server
 
 ### Database Operations
+- `npm run db:setup` - **First-time setup**: enable pgvector extension and push schema
 - `npm run db:generate` - Generate Drizzle migrations
 - `npm run db:migrate` - Run pending migrations
 - `npm run db:push` - Push schema changes to database
