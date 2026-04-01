@@ -10,7 +10,8 @@ import {
 } from "ai";
 import { z } from "zod";
 
-import { model } from "../../lib/model.ts";
+import { model } from "../model.ts";
+import { renderPrompt } from "../prompts/index.ts";
 import { searchSerper } from "~/server/serper.ts";
 import { bulkCrawlWebsites } from "~/server/scraper.ts";
 import { summarizeURL } from "./summarize-url.ts";
@@ -149,22 +150,10 @@ export const searchWebTool = tool({
 });
 
 function buildAgentInstructions() {
-  return `You are a research assistant that answers questions by searching the web.
-
-Current date and time: ${new Date().toLocaleString()}
-
-PROCESS:
-1. Analyze the user's question and create a research plan
-2. Search for information using the searchWeb tool with 3-5 specific queries
-3. Review the results and determine if you have enough information
-4. If not, search again with refined queries targeting information gaps
-5. Once you have sufficient information, provide a comprehensive answer
-
-When answering:
-- Be thorough but concise
-- Always cite your sources using markdown links
-- Format URLs as markdown links using [title](url)
-- Never include raw URLs`;
+  const { prompt } = renderPrompt("agent-instructions", {
+    currentDate: new Date().toLocaleString(),
+  });
+  return prompt;
 }
 
 // Exported for type inference only
