@@ -5,29 +5,8 @@
     {
       "idx": 0,
       "version": "7",
-      "when": 1739441164070,
-      "tag": "0000_magical_the_leader",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "7",
-      "when": 1752657393749,
-      "tag": "0001_square_angel",
-      "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "7",
-      "when": 1753897136848,
-      "tag": "0002_clean_tombstone",
-      "breakpoints": true
-    },
-    {
-      "idx": 3,
-      "version": "7",
-      "when": 1774964497872,
-      "tag": "0003_breezy_nuke",
+      "when": 1774989502319,
+      "tag": "0000_square_valeria_richards",
       "breakpoints": true
     }
   ]

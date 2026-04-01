@@ -1,1 +1,0 @@
-ALTER TABLE "ai-app-template_message" ADD COLUMN "annotations" json;
