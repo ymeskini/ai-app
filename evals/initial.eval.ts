@@ -1,7 +1,7 @@
 import type { UIMessage } from "ai";
 import { evalite } from "evalite";
 import { askDeepSearch } from "~/server/agent/deep-search";
-import { Factuality } from "~/lib/evals/faculty-scorer";
+import { Factuality } from "~/server/evals/faculty-scorer";
 
 evalite.experimental_skip("Deep Search Eval", {
   data: async (): Promise<{ input: string; expected: string }[]> => {

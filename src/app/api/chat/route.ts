@@ -2,7 +2,6 @@ import type { UIMessage } from "ai";
 import { createUIMessageStream, createUIMessageStreamResponse } from "ai";
 import { eq } from "drizzle-orm";
 import { Langfuse } from "langfuse";
-import { ulid } from "ulid";
 
 import { auth } from "~/server/auth";
 import { upsertChat } from "~/server/db/queries";
@@ -40,7 +39,7 @@ export async function POST(request: Request) {
   // If no chatId is provided, create a new chat with the user's message
   let currentChatId = chatId;
   if (!currentChatId) {
-    const newChatId = ulid();
+    const newChatId = crypto.randomUUID();
     await upsertChat({
       userId: session.user.id,
       chatId: newChatId,
