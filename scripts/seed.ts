@@ -9,9 +9,9 @@ import { reset } from "drizzle-seed";
 import { isNotNull } from "drizzle-orm";
 import postgres from "postgres";
 
-import { embeddingModel } from "../model";
-import * as schema from "./schemas";
-import { chunks, documents } from "./schemas/rag";
+import { embeddingModel } from "../src/server/model";
+import * as schema from "../src/server/db/schemas";
+import { chunks, documents } from "../src/server/db/schemas/rag";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -101,7 +101,7 @@ async function main() {
   console.log("Reset complete.\n");
 
   // --- Load chunks.json ---
-  const chunksFilePath = resolve(__dirname, "../../../chunks.json");
+  const chunksFilePath = resolve(__dirname, "../chunks.json");
   const chunksFile = JSON.parse(
     readFileSync(chunksFilePath, "utf-8"),
   ) as ChunksFile;

@@ -2,6 +2,7 @@
   "name": "ai-app-template",
   "version": "0.1.0",
   "private": true,
+  "type": "module",
   "scripts": {
     "build": "next build",
     "check": "eslint lint && tsc --noEmit",
@@ -9,7 +10,8 @@
     "db:migrate": "drizzle-kit migrate",
     "db:push": "drizzle-kit push --force",
     "db:setup": "bash scripts/db-setup.sh",
-    "db:seed": "jiti src/server/db/seed.ts",
+    "db:seed": "jiti scripts/seed.ts",
+    "rag:test": "jiti scripts/rag-test.ts",
     "db:studio": "drizzle-kit studio",
     "dev": "docker compose up -d --wait && next dev",
     "lint": "eslint",
