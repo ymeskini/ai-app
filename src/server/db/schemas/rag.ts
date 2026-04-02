@@ -1,5 +1,4 @@
 import { relations } from "drizzle-orm";
-import { messageSources } from "./chat";
 import {
   customType,
   integer,
@@ -8,6 +7,8 @@ import {
   uuid,
   vector,
 } from "drizzle-orm/pg-core";
+
+import { messageSources } from "./chat";
 import { createTable, primaryId } from "./table";
 
 const tsvector = customType<{ data: string; driverData: string }>({

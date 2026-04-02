@@ -1,10 +1,5 @@
 import type { InferSelectModel, InferInsertModel } from "drizzle-orm";
 
-export { createTable } from "./table";
-export * from "./auth";
-export * from "./chat";
-export * from "./rag";
-
 import type { users, accounts, sessions, verificationTokens } from "./auth";
 import type { chats, messages, messageSources } from "./chat";
 import type { documents, chunks } from "./rag";
@@ -39,3 +34,9 @@ export declare namespace DB {
   export type Chunk = InferSelectModel<typeof chunks>;
   export type NewChunk = InferInsertModel<typeof chunks>;
 }
+
+export * from "./auth";
+export * from "./chat";
+export * from "./rag";
+
+export { createTable } from "./table";
