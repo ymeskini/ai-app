@@ -26,7 +26,7 @@ export async function POST(request: Request) {
   }
 
   const body = (await request.json()) as {
-    messages: Array<UIMessage>;
+    messages: UIMessage[];
     chatId?: string;
   };
 
@@ -53,7 +53,7 @@ export async function POST(request: Request) {
     const chat = await db.query.chats.findFirst({
       where: eq(chats.id, currentChatId),
     });
-    if (!chat || chat.userId !== session.user.id) {
+    if (chat?.userId !== session.user.id) {
       return new Response("Chat not found or unauthorized", { status: 404 });
     }
   }

@@ -3,7 +3,7 @@ import { summarizationModel } from "../model.ts";
 import { renderPrompt } from "../prompts/index.ts";
 import { cacheWithRedis } from "~/server/redis/redis.ts";
 
-type SummarizeURLArgs = {
+interface SummarizeURLArgs {
   conversation: string;
   scrapedContent: string;
   searchMetadata: {
@@ -13,9 +13,8 @@ type SummarizeURLArgs = {
   };
   query: string;
   langfuseTraceId?: string;
-};
+}
 
-// eslint-disable-next-line @typescript-eslint/no-unsafe-call
 export const summarizeURL = cacheWithRedis(
   "summarizeURL",
   async (opts: SummarizeURLArgs): Promise<string> => {

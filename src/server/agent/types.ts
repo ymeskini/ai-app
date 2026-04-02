@@ -1,9 +1,9 @@
 import type { InferUITools, UIMessage } from "ai";
 import type { searchWebTool } from "./run-agent-loop.ts";
 
-export type OurDataParts = {
+export interface OurDataParts {
   "new-chat-created": { chatId: string };
-};
+}
 
 export type OurMessage = UIMessage<
   never,
@@ -11,7 +11,7 @@ export type OurMessage = UIMessage<
   InferUITools<{ searchWeb: typeof searchWebTool }>
 >;
 
-export type GuardrailResult = {
+export interface GuardrailResult {
   classification: "allow" | "refuse";
   reason?: string;
-};
+}

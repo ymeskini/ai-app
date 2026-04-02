@@ -16,12 +16,12 @@ import { searchSerper } from "~/server/serper.ts";
 import { bulkCrawlWebsites } from "~/server/scraper.ts";
 import { summarizeURL } from "./summarize-url.ts";
 
-type Source = {
+interface Source {
   title: string;
   url: string;
   snippet: string;
   favicon?: string;
-};
+}
 
 function messagesToConversationString(messages: ModelMessage[]): string {
   return messages

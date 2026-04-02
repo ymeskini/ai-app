@@ -10,12 +10,12 @@ interface ChatMessageProps {
   userName: string;
 }
 
-type Source = {
+interface Source {
   title: string;
   url: string;
   snippet: string;
   favicon?: string;
-};
+}
 
 const components: Components = {
   // Override default elements with custom styling
@@ -70,11 +70,10 @@ const Sources = ({ sources }: { sources: Source[] }) => {
           className="flex items-start gap-2 rounded-lg border border-gray-200 bg-white p-3 text-left shadow-sm transition-all hover:border-gray-300 hover:shadow-md"
         >
           {source.favicon && (
-            // eslint-disable-next-line @next/next/no-img-element
             <img
               src={source.favicon}
               alt={source.title}
-              className="mt-0.5 h-4 w-4 flex-shrink-0"
+              className="mt-0.5 h-4 w-4 shrink-0"
             />
           )}
           <div className="flex-1">
@@ -109,14 +108,14 @@ const ReasoningSteps = ({ parts }: { parts: OurMessage["parts"] }) => {
             <li key={index} className="relative">
               <button
                 onClick={() => setOpenStep(isOpen ? null : index)}
-                className={`flex w-full min-w-34 flex-shrink-0 items-center rounded-lg px-3 py-2 text-left text-sm font-medium transition-all ${
+                className={`flex w-full min-w-34 shrink-0 items-center rounded-lg px-3 py-2 text-left text-sm font-medium transition-all ${
                   isOpen
                     ? "bg-blue-50 text-blue-900 shadow-sm"
                     : "text-gray-700 hover:bg-gray-50 hover:text-gray-900"
                 }`}
               >
                 <span
-                  className={`z-10 mr-3 flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full border-2 text-xs font-bold transition-all ${
+                  className={`z-10 mr-3 flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 text-xs font-bold transition-all ${
                     isOpen
                       ? "border-blue-500 bg-blue-500 text-white shadow-sm"
                       : "border-gray-300 bg-white text-gray-600"

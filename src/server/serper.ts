@@ -2,10 +2,10 @@ import { env } from "~/env";
 import { cacheWithRedis } from "~/server/redis/redis";
 
 export declare namespace SerperTool {
-  export type SearchInput = {
+  export interface SearchInput {
     q: string;
     num: number;
-  };
+  }
 
   export interface SearchParameters {
     q: string;
