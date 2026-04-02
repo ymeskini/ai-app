@@ -2,6 +2,7 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { useSearchParams } from "next/navigation";
+
 import { ChatItem } from "./chat-item.tsx";
 import { SidebarMenu } from "~/components/ui/sidebar";
 import { chatsQueryOptions } from "~/lib/query-options.ts";

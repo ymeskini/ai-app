@@ -3,6 +3,7 @@
 import { DefaultChatTransport } from "ai";
 import { useChat } from "@ai-sdk/react";
 import { useQueryClient } from "@tanstack/react-query";
+import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
 import { StickToBottom } from "use-stick-to-bottom";
 
@@ -33,6 +34,7 @@ export const ChatPage = ({
 }: ChatProps) => {
   const [showSignInModal, setShowSignInModal] = useState(false);
   const queryClient = useQueryClient();
+  const router = useRouter();
   const chatIdRef = useRef(chatId);
   const isNewChatRef = useRef(!chatId);
   const { messages, status, sendMessage, stop } = useChat<OurMessage>({
@@ -55,6 +57,8 @@ export const ChatPage = ({
         void queryClient.invalidateQueries({
           queryKey: chatsQueryOptions.queryKey,
         });
+        // stream is done — safe to use router now, this syncs useSearchParams in ChatList
+        router.replace(`/?id=${chatIdRef.current}`, { scroll: false });
       }
     },
   });

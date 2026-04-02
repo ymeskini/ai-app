@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { MoreHorizontal, Trash2 } from "lucide-react";
-import { useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { chatsQueryOptions } from "~/lib/query-options.ts";
 import {
   SidebarMenuButton,
@@ -38,35 +38,30 @@ interface ChatItemProps {
 
 export function ChatItem({ chat, isActive }: ChatItemProps) {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-  const [isDeleting, setIsDeleting] = useState(false);
   const queryClient = useQueryClient();
   const router = useRouter();
 
-  const handleDelete = async () => {
-    setIsDeleting(true);
-    try {
+  const { mutate: deleteChat, isPending: isDeleting } = useMutation({
+    mutationFn: async () => {
       const response = await fetch(`/api/chat/${chat.id}`, {
         method: "DELETE",
       });
-
       if (!response.ok) {
         throw new Error("Failed to delete chat");
       }
-
+    },
+    onSuccess: async () => {
       await queryClient.invalidateQueries({
         queryKey: chatsQueryOptions.queryKey,
       });
-
       if (isActive) {
         router.push("/");
       }
-    } catch (error) {
-      console.error("Error deleting chat:", error);
-    } finally {
-      setIsDeleting(false);
       setIsDeleteDialogOpen(false);
-    }
-  };
+    },
+  });
+
+  const handleDelete = () => deleteChat();
 
   const handleDialogClosed = () => {
     setIsDeleteDialogOpen(false);
