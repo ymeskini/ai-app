@@ -258,7 +258,7 @@ export const PromptInputProvider = ({
     (FileUIPart & { id: string })[]
   >([]);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
-  // eslint-disable-next-line @typescript-eslint/no-empty-function
+
   const openRef = useRef<() => void>(() => {});
 
   const add = useCallback((files: File[] | FileList) => {
@@ -841,7 +841,6 @@ export const PromptInput = ({
     [referencedSources, clearReferencedSources],
   );
 
-  // eslint-disable-next-line @typescript-eslint/no-misused-promises
   const handleSubmit: FormEventHandler<HTMLFormElement> = useCallback(
     async (event) => {
       event.preventDefault();
