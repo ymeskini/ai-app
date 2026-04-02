@@ -6,7 +6,7 @@ export * from "./chat";
 export * from "./rag";
 
 import type { users, accounts, sessions, verificationTokens } from "./auth";
-import type { chats, messages } from "./chat";
+import type { chats, messages, messageSources } from "./chat";
 import type { documents, chunks } from "./rag";
 
 export declare namespace DB {
@@ -29,6 +29,9 @@ export declare namespace DB {
 
   export type Message = InferSelectModel<typeof messages>;
   export type NewMessage = InferInsertModel<typeof messages>;
+
+  export type MessageSource = InferSelectModel<typeof messageSources>;
+  export type NewMessageSource = InferInsertModel<typeof messageSources>;
 
   export type Document = InferSelectModel<typeof documents>;
   export type NewDocument = InferInsertModel<typeof documents>;

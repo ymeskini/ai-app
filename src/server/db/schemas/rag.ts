@@ -1,4 +1,5 @@
 import { relations } from "drizzle-orm";
+import { messageSources } from "./chat";
 import {
   customType,
   integer,
@@ -53,9 +54,10 @@ export const documentsRelations = relations(documents, ({ many }) => ({
   chunks: many(chunks),
 }));
 
-export const chunksRelations = relations(chunks, ({ one }) => ({
+export const chunksRelations = relations(chunks, ({ one, many }) => ({
   document: one(documents, {
     fields: [chunks.documentId],
     references: [documents.id],
   }),
+  messageSources: many(messageSources),
 }));
