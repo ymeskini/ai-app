@@ -1,4 +1,4 @@
-import { relations, sql } from "drizzle-orm";
+import { relations } from "drizzle-orm";
 import {
   index,
   integer,
@@ -10,6 +10,7 @@ import {
   boolean,
 } from "drizzle-orm/pg-core";
 import type { AdapterAccount } from "@auth/core/adapters";
+
 import { createTable, primaryId } from "./table";
 
 export const users = createTable("user", {
@@ -19,7 +20,7 @@ export const users = createTable("user", {
   emailVerified: timestamp("email_verified", {
     mode: "date",
     withTimezone: true,
-  }).default(sql`CURRENT_TIMESTAMP`),
+  }).defaultNow(),
   image: varchar("image", { length: 255 }),
   isAdmin: boolean("is_admin").notNull().default(false),
 });

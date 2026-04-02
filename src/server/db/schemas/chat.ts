@@ -1,4 +1,4 @@
-import { relations, sql } from "drizzle-orm";
+import { relations } from "drizzle-orm";
 import {
   index,
   integer,
@@ -9,6 +9,7 @@ import {
   uuid,
   varchar,
 } from "drizzle-orm/pg-core";
+
 import { createTable, primaryId } from "./table";
 import { users } from "./auth";
 import { chunks } from "./rag";
@@ -23,14 +24,14 @@ export const chats = createTable("chat", {
     mode: "date",
     withTimezone: true,
   })
-    .notNull()
-    .default(sql`CURRENT_TIMESTAMP`),
+    .defaultNow()
+    .notNull(),
   updatedAt: timestamp("updated_at", {
     mode: "date",
     withTimezone: true,
   })
-    .notNull()
-    .default(sql`CURRENT_TIMESTAMP`),
+    .defaultNow()
+    .notNull(),
 });
 
 export const chatsRelations = relations(chats, ({ one, many }) => ({
@@ -52,8 +53,8 @@ export const messages = createTable(
       mode: "date",
       withTimezone: true,
     })
-      .notNull()
-      .default(sql`CURRENT_TIMESTAMP`),
+      .defaultNow()
+      .notNull(),
   },
   (message) => [index("message_chat_id_idx").on(message.chatId)],
 );
@@ -79,8 +80,8 @@ export const messageSources = createTable(
       mode: "date",
       withTimezone: true,
     })
-      .notNull()
-      .default(sql`CURRENT_TIMESTAMP`),
+      .defaultNow()
+      .notNull(),
   },
   (source) => [index("message_source_message_id_idx").on(source.messageId)],
 );
