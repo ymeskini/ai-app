@@ -1,15 +1,9 @@
-/**
- * Run `build` or `dev` with `SKIP_ENV_VALIDATION` to skip env validation. This is especially useful
- * for Docker builds.
- */
-import "./src/env.js";
+import "./src/env";
+
 import { withSentryConfig } from "@sentry/nextjs";
+import type { NextConfig } from "next";
 
-/** @type {import("next").NextConfig} */
-const baseConfig = {
-  // Enable standalone output for Docker production builds
-  output: process.env.NODE_ENV === "production" ? "standalone" : undefined,
-
+const nextConfig: NextConfig = {
   images: {
     remotePatterns: [
       {
@@ -23,14 +17,12 @@ const baseConfig = {
   },
 };
 
-// Injected content via Sentry wizard below
-
-const config = withSentryConfig(baseConfig, {
+export default withSentryConfig(nextConfig, {
   // For all available options, see:
   // https://www.npmjs.com/package/@sentry/webpack-plugin#options
-  telemetry: false,
+
   org: "ymeskini",
-  project: "nextjs-ai-app",
+  project: "ai-app",
 
   // Only print logs for uploading source maps in CI
   silent: !process.env.CI,
@@ -46,6 +38,18 @@ const config = withSentryConfig(baseConfig, {
   // Note: Check that the configured route will not match with your Next.js middleware, otherwise reporting of client-
   // side errors will fail.
   tunnelRoute: "/monitoring",
-});
 
-export default config;
+  webpack: {
+    // Enables automatic instrumentation of Vercel Cron Monitors. (Does not yet work with App Router route handlers.)
+    // See the following for more information:
+    // https://docs.sentry.io/product/crons/
+    // https://vercel.com/docs/cron-jobs
+    automaticVercelMonitors: true,
+
+    // Tree-shaking options for reducing bundle size
+    treeshake: {
+      // Automatically tree-shake Sentry logger statements to reduce bundle size
+      removeDebugLogging: true,
+    },
+  },
+});
