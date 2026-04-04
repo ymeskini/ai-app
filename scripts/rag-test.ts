@@ -3,7 +3,7 @@ import "dotenv/config";
 import { createInterface } from "node:readline";
 import { cosineDistance, desc, gt, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/postgres-js";
-import { embed, generateText } from "ai";
+import { embed, streamText } from "ai";
 import postgres from "postgres";
 
 import { embeddingModel, model } from "../src/server/model";
@@ -12,7 +12,6 @@ import { chunks, documents } from "../src/server/db/schemas/rag";
 
 const SIMILARITY_THRESHOLD = 0.3;
 const TOP_K = 5;
-const CONTENT_PREVIEW_LENGTH = 200;
 
 function ask(question: string): Promise<string> {
   const rl = createInterface({ input: process.stdin, output: process.stdout });
@@ -82,21 +81,6 @@ async function main() {
   console.log(`\nFound ${retrieved.length} relevant chunks:\n`);
   printSeparator();
 
-  for (const [i, chunk] of retrieved.entries()) {
-    const preview =
-      chunk.content.length > CONTENT_PREVIEW_LENGTH
-        ? chunk.content.slice(0, CONTENT_PREVIEW_LENGTH).trimEnd() + "…"
-        : chunk.content;
-
-    console.log(`[${i + 1}] ${chunk.documentTitle}`);
-    if (chunk.headingContext)
-      console.log(`    Section : ${chunk.headingContext}`);
-    console.log(`    Source  : ${chunk.sourceFilePath}`);
-    console.log(`    Score   : ${chunk.similarity.toFixed(4)}`);
-    console.log(`    Preview : ${preview}`);
-    printSeparator("·");
-  }
-
   const context = retrieved
     .map(
       (chunk, i) =>
@@ -105,19 +89,21 @@ async function main() {
     .join("\n\n---\n\n");
 
   const prompt = `You are a helpful assistant. Answer the user's question using ONLY the provided context. If the context does not contain enough information to answer, say so clearly — do not make up information.
-
-<context>
-${context}
-</context>
-
-Question: ${question}`;
+  <context>
+  ${context}
+  </context>
+  Question: ${question}
+  `;
 
   console.log("\nGenerating answer...\n");
   printSeparator();
 
-  const { text } = await generateText({ model, prompt });
+  const { textStream } = streamText({ model, prompt });
 
-  console.log(text);
+  for await (const chunk of textStream) {
+    process.stdout.write(chunk);
+  }
+  console.log();
   printSeparator();
 
   await client.end();

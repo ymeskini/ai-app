@@ -4,7 +4,6 @@ import {
   stepCountIs,
   convertToModelMessages,
   type UIMessage,
-  type StreamTextResult,
   type InferAgentUIMessage,
   type ModelMessage,
 } from "ai";
@@ -15,6 +14,7 @@ import { renderPrompt } from "../prompts/index.ts";
 import { searchSerper } from "~/server/serper.ts";
 import { bulkCrawlWebsites } from "~/server/scraper.ts";
 import { summarizeURL } from "./summarize-url.ts";
+import type { SearchToolResult } from "./types.ts";
 
 interface Source {
   title: string;
@@ -171,7 +171,7 @@ export async function runAgentLoop(
   opts: {
     langfuseTraceId?: string;
   },
-): Promise<StreamTextResult<any, any>> {
+): Promise<SearchToolResult> {
   const agent = new ToolLoopAgent({
     model,
     instructions: buildAgentInstructions(),

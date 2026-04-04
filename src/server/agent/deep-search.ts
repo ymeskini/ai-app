@@ -1,10 +1,12 @@
-import type { UIMessage, StreamTextResult } from "ai";
+import type { UIMessage } from "ai";
+
 import { runAgentLoop } from "./run-agent-loop.ts";
+import type { SearchToolResult } from "./types.ts";
 
 export const streamFromDeepSearch = async (opts: {
   messages: UIMessage[];
   langfuseTraceId?: string;
-}): Promise<StreamTextResult<any, any>> => {
+}): Promise<SearchToolResult> => {
   return runAgentLoop(opts.messages, {
     langfuseTraceId: opts.langfuseTraceId,
   });
