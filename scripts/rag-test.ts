@@ -1,115 +1,181 @@
+#!/usr/bin/env tsx
+
 import "dotenv/config";
 
-import { createInterface } from "node:readline";
-import { cosineDistance, desc, gt, sql } from "drizzle-orm";
-import { drizzle } from "drizzle-orm/postgres-js";
-import { embed, streamText } from "ai";
-import postgres from "postgres";
+import { generateText } from "ai";
 
-import { embeddingModel, model } from "../src/server/model";
-import * as schema from "../src/server/db/schemas";
-import { chunks, documents } from "../src/server/db/schemas/rag";
+import { model } from "../src/server/model";
+import { renderPrompt } from "../src/server/prompts";
+import { generateMDNUrl } from "../src/app/helpers/general";
+import { performSemanticSearch, type SearchResult } from "./semantic-search";
 
-const SIMILARITY_THRESHOLD = 0.3;
-const TOP_K = 5;
-
-function ask(question: string): Promise<string> {
-  const rl = createInterface({ input: process.stdin, output: process.stdout });
-  return new Promise((resolve) => {
-    rl.question(question, (answer) => {
-      rl.close();
-      resolve(answer.trim());
-    });
-  });
+interface RAGResponse {
+  answer: string;
+  sources: Array<{
+    documentTitle: string;
+    sourceFilePath: string;
+    content: string;
+    similarity: number;
+  }>;
+  tokensUsed?: number;
 }
 
-async function retrieveChunks(
+export function transformChunksForFrontend(chunks: SearchResult[]) {
+  return chunks.map((source, index) => ({
+    id: String(index + 1),
+    citationNumber: index + 1,
+    title: source.documentTitle,
+    url: generateMDNUrl(source.documentSlug, source.headingContext),
+    similarity: source.similarity,
+    sourceFilePath: source.sourceFilePath,
+    chunkId: source.chunkId,
+    content: source.content,
+  }));
+}
+
+function formatDocumentsXml(chunks: SearchResult[]): string {
+  return transformChunksForFrontend(chunks)
+    .map(
+      (doc) => `<document id="${doc.id}" citation="${doc.citationNumber}">
+    <title>${doc.title}</title>
+    <url>${doc.url}</url>
+    <similarity>${(doc.similarity * 100).toFixed(1)}%</similarity>
+    <content>${doc.content}</content>
+  </document>`,
+    )
+    .join("\n");
+}
+
+export async function queryLLM(
   question: string,
-  db: ReturnType<typeof drizzle>,
-) {
-  const { embedding: queryEmbedding } = await embed({
-    model: embeddingModel,
-    value: question,
-    providerOptions: { voyage: { inputType: "query" } },
+  chunks: SearchResult[],
+): Promise<{ answer: string; tokensUsed?: number }> {
+  console.log("🤖 Querying Gemini...");
+
+  const { prompt } = renderPrompt("rag-query", {
+    documents: formatDocumentsXml(chunks),
+    question,
   });
 
-  const similarity = sql<number>`1 - (${cosineDistance(chunks.embedding, queryEmbedding)})`;
+  const { text, usage } = await generateText({ model, prompt });
 
-  return db
-    .select({
-      content: chunks.content,
-      similarity,
-      headingContext: chunks.headingContextText,
-      documentTitle: documents.title,
-      sourceFilePath: documents.sourceFilePath,
-    })
-    .from(chunks)
-    .innerJoin(documents, sql`${chunks.documentId} = ${documents.id}`)
-    .where(gt(similarity, SIMILARITY_THRESHOLD))
-    .orderBy(desc(similarity))
-    .limit(TOP_K);
+  console.log(
+    `✅ Generated response (${usage?.totalTokens ?? "unknown"} tokens)`,
+  );
+
+  return { answer: text, tokensUsed: usage?.totalTokens };
 }
 
-function printSeparator(char = "─", width = 60) {
-  console.log(char.repeat(width));
+function displayRAGResponse(response: RAGResponse, question: string): void {
+  console.log("\n" + "=".repeat(80));
+  console.log(`🎯 RAG RESPONSE FOR: "${question}"`);
+  console.log("=".repeat(80));
+
+  console.log("\n🤖 AI ANSWER:");
+  console.log("-".repeat(40));
+  console.log(response.answer);
+
+  if (response.tokensUsed) {
+    console.log(`\n📊 Tokens used: ${response.tokensUsed}`);
+  }
+
+  console.log("\n📚 SOURCES USED:");
+  console.log("-".repeat(40));
+  response.sources.forEach((source, index) => {
+    console.log(`${index + 1}. ${source.documentTitle}`);
+    console.log(`   📁 ${source.sourceFilePath}`);
+    console.log(`   🎯 Similarity: ${(source.similarity * 100).toFixed(1)}%`);
+    console.log(
+      `   📄 "${source.content.substring(0, 100).replace(/\n/g, " ")}..."`,
+    );
+    console.log();
+  });
+
+  console.log("=".repeat(80));
 }
 
-async function main() {
-  const connectionString = process.env.DATABASE_URL;
-  if (!connectionString) throw new Error("DATABASE_URL is not set");
+export async function performRAGQuery(
+  question: string,
+  options: { limit?: number } = {},
+): Promise<RAGResponse> {
+  const { limit = 5 } = options;
 
-  const client = postgres(connectionString);
-  const db = drizzle(client, { schema });
+  console.log("🚀 Starting RAG query...\n");
+  console.log(`📝 Question: "${question}"`);
+  console.log("🤖 Using model: gemini-2.0-flash-001\n");
 
-  const question = await ask("Question: ");
-  if (!question) {
-    console.error("No question provided.");
-    await client.end();
+  if (!process.env.VOYAGE_API_KEY) {
+    console.error(
+      "❌ VOYAGE_API_KEY environment variable is required but not set",
+    );
     process.exit(1);
   }
 
-  console.log("\nRetrieving relevant chunks...");
+  const retrievedChunks = await performSemanticSearch(question, limit);
 
-  const retrieved = await retrieveChunks(question, db);
-
-  if (retrieved.length === 0) {
-    console.log("No relevant chunks found above similarity threshold.");
-    await client.end();
-    return;
+  if (retrievedChunks.length === 0) {
+    return {
+      answer:
+        "I couldn't find any relevant information in the knowledge base to answer your question. You may want to try rephrasing your question or checking if the information exists in the documents.",
+      sources: [],
+    };
   }
 
-  console.log(`\nFound ${retrieved.length} relevant chunks:\n`);
-  printSeparator();
+  const llmResponse = await queryLLM(question, retrievedChunks);
 
-  const context = retrieved
-    .map(
-      (chunk, i) =>
-        `[Source ${i + 1}: ${chunk.documentTitle}${chunk.headingContext ? ` — ${chunk.headingContext}` : ""}]\n${chunk.content}`,
-    )
-    .join("\n\n---\n\n");
-
-  const prompt = `You are a helpful assistant. Answer the user's question using ONLY the provided context. If the context does not contain enough information to answer, say so clearly — do not make up information.
-  <context>
-  ${context}
-  </context>
-  Question: ${question}
-  `;
-
-  console.log("\nGenerating answer...\n");
-  printSeparator();
-
-  const { textStream } = streamText({ model, prompt });
-
-  for await (const chunk of textStream) {
-    process.stdout.write(chunk);
-  }
-  console.log();
-  printSeparator();
-
-  await client.end();
+  return {
+    answer: llmResponse.answer,
+    sources: retrievedChunks,
+    tokensUsed: llmResponse.tokensUsed,
+  };
 }
 
-main().catch((err: unknown) => {
-  console.error("RAG test failed:", err);
-  process.exit(1);
-});
+async function main(): Promise<void> {
+  const args = process.argv.slice(2);
+
+  let question: string;
+  let limit = 5;
+
+  if (args.length === 0) {
+    const readline = await import("readline");
+    const rl = readline.createInterface({
+      input: process.stdin,
+      output: process.stdout,
+    });
+
+    question = await new Promise<string>((resolve) => {
+      rl.question("🤔 Ask me anything: ", (answer) => {
+        rl.close();
+        resolve(answer.trim());
+      });
+    });
+  } else {
+    question = args.filter((arg) => !arg.startsWith("--")).join(" ");
+
+    const limitArg = args.find((arg) => arg.startsWith("--limit="));
+    if (limitArg) {
+      limit = parseInt(limitArg.split("=")[1] ?? "5") || 5;
+    }
+  }
+
+  if (!question) {
+    console.error("❌ No question provided");
+    console.log("Usage:");
+    console.log('  tsx scripts/rag-test.ts "your question here"');
+    console.log('  tsx scripts/rag-test.ts "your question" --limit=10');
+    console.log("  tsx scripts/rag-test.ts  (for interactive mode)");
+    process.exit(1);
+  }
+
+  const response = await performRAGQuery(question, { limit });
+  displayRAGResponse(response, question);
+}
+
+if (import.meta.url === `file://${process.argv[1]}`) {
+  main().catch((error: unknown) => {
+    console.error("Script failed:", error);
+    process.exit(1);
+  });
+}
+
+export { queryLLM as queryRAGLLM };
