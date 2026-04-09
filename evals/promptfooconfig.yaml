@@ -5,13 +5,43 @@ prompts:
   - "{{ query }}"
 
 providers:
-  - file://retrieval-provider.ts
+  - id: file://retrieval-provider.ts
+    label: retrieval-provider
+  - id: file://source-provider.ts
+    label: source-provider
 
 tests:
   - vars:
       query: What's the example used in the MDN docs to demonstrate how to declare a variable?
+    providers:
+      - retrieval-provider
     assert:
       - type: contains-all
         value:
           - grammar_and_types/index.md_chunk_7
           - language_overview/index.md_chunk_14
+  - vars:
+      query: What prereqs should I have before studying JavaScript?
+    providers:
+      - source-provider
+    assert:
+      - type: context-faithfulness
+        transform: "output.answer"
+        contextTransform: "output.context"
+        value: |
+          - A general understanding of the Internet and the World Wide Web (WWW)
+          - Good working knowledge of HyperText Markup Language (HTML)
+          - Some programming experience.
+          For more details see [refer to the Introduction](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Introduction)
+        threshold: 0.9 # Require 90% of claims to be supported
+        provider: "google:gemini-2.0-flash"
+
+  ## Always links to the provided context
+  - vars:
+      query: What's the example used in the MDN docs to demonstrate how to declare a variable?
+    providers:
+      - source-provider
+    assert:
+      - type: contains
+        transform: "output.answer"
+        value: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Grammar_and_types#declaring_variables

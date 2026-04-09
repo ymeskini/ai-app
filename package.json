@@ -23,7 +23,8 @@
     "format:check": "prettier --check \"**/*.{ts,tsx,js,jsx,mdx}\" --cache",
     "test": "vitest run",
     "test:watch": "vitest",
-    "evals": "evalite watch"
+    "evals": "evalite watch",
+    "evals:promptfoo": "promptfoo eval -c evals/promptfooconfig.yaml --env-file=.env"
   },
   "dependencies": {
     "@ai-sdk/google": "^3.0.34",

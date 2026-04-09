@@ -4,10 +4,10 @@ import "dotenv/config";
 
 import { generateText } from "ai";
 
-import { model } from "../src/server/model";
-import { renderPrompt } from "../src/server/prompts";
-import { generateMDNUrl } from "../src/app/helpers/general";
-import { performSemanticSearch, type SearchResult } from "./semantic-search";
+import { model } from "../src/server/model.ts";
+import { renderPrompt } from "../src/server/prompts/index.ts";
+import { generateMDNUrl } from "../src/app/helpers/general.ts";
+import { performSemanticSearch, type SearchResult } from "./semantic-search.ts";
 
 interface RAGResponse {
   answer: string;
