@@ -14,6 +14,7 @@ import { renderPrompt } from "../prompts/index.ts";
 import { searchSerper } from "~/server/serper.ts";
 import { bulkCrawlWebsites } from "~/server/scraper.ts";
 import { summarizeURL } from "./summarize-url.ts";
+import { performSemanticSearch } from "~/server/rag.ts";
 import type { SearchToolResult } from "./types.ts";
 
 interface Source {
@@ -149,6 +150,35 @@ export const searchWebTool = tool({
   },
 });
 
+export const ragSearchTool = tool({
+  description:
+    "Search the internal JavaScript/MDN knowledge base for documentation and reference information. Use this when the user asks about JavaScript, Web APIs, CSS, HTML, or any web platform feature — before searching the web.",
+  inputSchema: z.object({
+    query: z
+      .string()
+      .describe(
+        "The search query to find relevant documentation. Be specific and use technical terms.",
+      ),
+  }),
+  execute: async ({ query }) => {
+    const results = await performSemanticSearch(query, 5);
+
+    if (results.length === 0) {
+      return { found: false, results: [] };
+    }
+
+    return {
+      found: true,
+      results: results.map((r) => ({
+        title: r.documentTitle,
+        url: r.url,
+        similarity: `${(r.similarity * 100).toFixed(1)}%`,
+        content: r.content,
+      })),
+    };
+  },
+});
+
 function buildAgentInstructions() {
   const { prompt } = renderPrompt("agent-instructions", {
     currentDate: new Date().toLocaleString(),
@@ -160,7 +190,7 @@ function buildAgentInstructions() {
 export const deepSearchAgent = new ToolLoopAgent({
   model,
   instructions: buildAgentInstructions(),
-  tools: { searchWeb: searchWebTool },
+  tools: { searchWeb: searchWebTool, searchKnowledgeBase: ragSearchTool },
   stopWhen: [stepCountIs(4)],
 });
 
@@ -175,7 +205,7 @@ export async function runAgentLoop(
   const agent = new ToolLoopAgent({
     model,
     instructions: buildAgentInstructions(),
-    tools: { searchWeb: searchWebTool },
+    tools: { searchWeb: searchWebTool, searchKnowledgeBase: ragSearchTool },
     stopWhen: [stepCountIs(4)],
     experimental_telemetry: opts.langfuseTraceId
       ? {

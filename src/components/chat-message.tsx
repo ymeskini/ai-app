@@ -1,6 +1,6 @@
 import ReactMarkdown, { type Components } from "react-markdown";
 import { useState } from "react";
-import { SearchIcon } from "lucide-react";
+import { BookOpenIcon, SearchIcon } from "lucide-react";
 
 import type { OurMessage } from "~/server/agent/types";
 
@@ -88,65 +88,132 @@ const Sources = ({ sources }: { sources: Source[] }) => {
   );
 };
 
+const MDN_FAVICON = "https://developer.mozilla.org/favicon.ico";
+
 const ReasoningSteps = ({ parts }: { parts: OurMessage["parts"] }) => {
   const [openStep, setOpenStep] = useState<number | null>(null);
 
-  const searchSteps = parts.filter((p) => p.type === "tool-searchWeb");
-  if (searchSteps.length === 0) return null;
+  const toolSteps = parts.filter(
+    (p) => p.type === "tool-searchWeb" || p.type === "tool-searchKnowledgeBase",
+  );
+  if (toolSteps.length === 0) return null;
 
   return (
     <div className="mb-4 w-full">
       <ul className="space-y-1">
-        {searchSteps.map((part, index) => {
-          if (part.type !== "tool-searchWeb") return null;
+        {toolSteps.map((part, index) => {
           const isOpen = openStep === index;
-          const title = part.input?.title ?? "Searching...";
-          const sources =
-            part.state === "output-available" ? part.output?.sources : null;
 
-          return (
-            <li key={index} className="relative">
-              <button
-                onClick={() => setOpenStep(isOpen ? null : index)}
-                className={`flex w-full min-w-34 shrink-0 items-center rounded-lg px-3 py-2 text-left text-sm font-medium transition-all ${
-                  isOpen
-                    ? "bg-blue-50 text-blue-900 shadow-sm"
-                    : "text-gray-700 hover:bg-gray-50 hover:text-gray-900"
-                }`}
-              >
-                <span
-                  className={`z-10 mr-3 flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 text-xs font-bold transition-all ${
+          if (part.type === "tool-searchWeb") {
+            const title = part.input?.title ?? "Searching...";
+            const sources =
+              part.state === "output-available" ? part.output?.sources : null;
+
+            return (
+              <li key={index} className="relative">
+                <button
+                  onClick={() => setOpenStep(isOpen ? null : index)}
+                  className={`flex w-full min-w-34 shrink-0 items-center rounded-lg px-3 py-2 text-left text-sm font-medium transition-all ${
                     isOpen
-                      ? "border-blue-500 bg-blue-500 text-white shadow-sm"
-                      : "border-gray-300 bg-white text-gray-600"
+                      ? "bg-blue-50 text-blue-900 shadow-sm"
+                      : "text-gray-700 hover:bg-gray-50 hover:text-gray-900"
                   }`}
                 >
-                  {index + 1}
-                </span>
-                {title}
-              </button>
-              <div className={`${isOpen ? "mt-2" : "hidden"}`}>
-                {isOpen && (
-                  <div className="rounded-lg bg-gray-50 px-4 py-3">
-                    {part.input?.reasoning && (
-                      <div className="mb-3 text-sm text-gray-700">
-                        <Markdown>{part.input.reasoning}</Markdown>
-                      </div>
-                    )}
-                    {part.state === "input-available" ||
-                    part.state === "input-streaming" ? (
-                      <div className="flex items-center gap-2 text-sm text-blue-700">
-                        <SearchIcon className="size-4" />
-                        <span className="font-medium">Searching...</span>
-                      </div>
-                    ) : sources ? (
-                      <Sources sources={sources} />
-                    ) : null}
-                  </div>
-                )}
-              </div>
-            </li>
-          );
+                  <span
+                    className={`z-10 mr-3 flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 text-xs font-bold transition-all ${
+                      isOpen
+                        ? "border-blue-500 bg-blue-500 text-white shadow-sm"
+                        : "border-gray-300 bg-white text-gray-600"
+                    }`}
+                  >
+                    {index + 1}
+                  </span>
+                  {title}
+                </button>
+                <div className={`${isOpen ? "mt-2" : "hidden"}`}>
+                  {isOpen && (
+                    <div className="rounded-lg bg-gray-50 px-4 py-3">
+                      {part.input?.reasoning && (
+                        <div className="mb-3 text-sm text-gray-700">
+                          <Markdown>{part.input.reasoning}</Markdown>
+                        </div>
+                      )}
+                      {part.state === "input-available" ||
+                      part.state === "input-streaming" ? (
+                        <div className="flex items-center gap-2 text-sm text-blue-700">
+                          <SearchIcon className="size-4" />
+                          <span className="font-medium">Searching...</span>
+                        </div>
+                      ) : sources ? (
+                        <Sources sources={sources} />
+                      ) : null}
+                    </div>
+                  )}
+                </div>
+              </li>
+            );
+          }
+
+          if (part.type === "tool-searchKnowledgeBase") {
+            const query = part.input?.query ?? "Searching knowledge base...";
+            const mdnSources =
+              part.state === "output-available" && part.output?.found
+                ? part.output.results.map((r) => ({
+                    title: r.title,
+                    url: r.url,
+                    snippet: r.content.slice(0, 120),
+                    favicon: MDN_FAVICON,
+                  }))
+                : null;
+
+            return (
+              <li key={index} className="relative">
+                <button
+                  onClick={() => setOpenStep(isOpen ? null : index)}
+                  className={`flex w-full min-w-34 shrink-0 items-center rounded-lg px-3 py-2 text-left text-sm font-medium transition-all ${
+                    isOpen
+                      ? "bg-orange-50 text-orange-900 shadow-sm"
+                      : "text-gray-700 hover:bg-gray-50 hover:text-gray-900"
+                  }`}
+                >
+                  <span
+                    className={`z-10 mr-3 flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 text-xs font-bold transition-all ${
+                      isOpen
+                        ? "border-orange-500 bg-orange-500 text-white shadow-sm"
+                        : "border-gray-300 bg-white text-gray-600"
+                    }`}
+                  >
+                    {index + 1}
+                  </span>
+                  <BookOpenIcon className="mr-2 size-4 shrink-0" />
+                  {`Searching MDN docs for "${query}"`}
+                </button>
+                <div className={`${isOpen ? "mt-2" : "hidden"}`}>
+                  {isOpen && (
+                    <div className="rounded-lg bg-gray-50 px-4 py-3">
+                      {part.state === "input-available" ||
+                      part.state === "input-streaming" ? (
+                        <div className="flex items-center gap-2 text-sm text-orange-700">
+                          <BookOpenIcon className="size-4" />
+                          <span className="font-medium">
+                            Searching knowledge base...
+                          </span>
+                        </div>
+                      ) : mdnSources ? (
+                        <Sources sources={mdnSources} />
+                      ) : (
+                        <p className="text-sm text-gray-500">
+                          No relevant documentation found.
+                        </p>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </li>
+            );
+          }
+
+          return null;
         })}
       </ul>
     </div>
