@@ -10,9 +10,9 @@ import {
   varchar,
 } from "drizzle-orm/pg-core";
 
-import { createTable, primaryId } from "./table";
-import { users } from "./auth";
-import { chunks } from "./rag";
+import { createTable, primaryId } from "./table.ts";
+import { users } from "./auth.ts";
+import { chunks } from "./rag.ts";
 
 export const chats = createTable("chat", {
   id: primaryId(),

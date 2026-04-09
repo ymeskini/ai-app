@@ -8,8 +8,8 @@ import {
   vector,
 } from "drizzle-orm/pg-core";
 
-import { messageSources } from "./chat";
-import { createTable, primaryId } from "./table";
+import { messageSources } from "./chat.ts";
+import { createTable, primaryId } from "./table.ts";
 
 const tsvector = customType<{ data: string; driverData: string }>({
   dataType() {

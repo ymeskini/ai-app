@@ -1,9 +1,10 @@
 import type { InferSelectModel, InferInsertModel } from "drizzle-orm";
 
-import type { users, accounts, sessions, verificationTokens } from "./auth";
-import type { chats, messages, messageSources } from "./chat";
-import type { documents, chunks } from "./rag";
+import type { users, accounts, sessions, verificationTokens } from "./auth.ts";
+import type { chats, messages, messageSources } from "./chat.ts";
+import type { documents, chunks } from "./rag.ts";
 
+// eslint-disable-next-line @typescript-eslint/no-namespace
 export declare namespace DB {
   export type User = InferSelectModel<typeof users>;
   export type NewUser = InferInsertModel<typeof users>;
@@ -35,8 +36,8 @@ export declare namespace DB {
   export type NewChunk = InferInsertModel<typeof chunks>;
 }
 
-export * from "./auth";
-export * from "./chat";
-export * from "./rag";
+export * from "./auth.ts";
+export * from "./chat.ts";
+export * from "./rag.ts";
 
-export { createTable } from "./table";
+export { createTable } from "./table.ts";

@@ -11,7 +11,7 @@ import {
 } from "drizzle-orm/pg-core";
 import type { AdapterAccount } from "@auth/core/adapters";
 
-import { createTable, primaryId } from "./table";
+import { createTable, primaryId } from "./table.ts";
 
 export const users = createTable("user", {
   id: primaryId(),

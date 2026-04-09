@@ -57,3 +57,17 @@ There a other queries possible check [pgvector](https://github.com/pgvector/pgve
 We define Top-K (which is the limit of documents to retrieve) for the query:
 - A low Top-K misses relevant context leading to incomplete answers
 - A high Top-K risks adding noise causing confusion and higher token usage
+
+
+# Evaluating RAG Results
+
+## Output Based Criterias
+1. Factuality (Correctness)
+2. Answer Relevance
+
+## Context Based Criterias
+1. Context Adherence (Grounding or Faithfulness)
+2. Context Recall
+3. Context Relevance
+
+We'll use [PromptFoo](https://www.promptfoo.dev/docs/guides/evaluate-rag/) for evaluation

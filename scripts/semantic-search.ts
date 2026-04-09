@@ -5,9 +5,9 @@ import { drizzle } from "drizzle-orm/postgres-js";
 import { embed } from "ai";
 import postgres from "postgres";
 
-import { embeddingModel } from "../src/server/model";
-import * as schema from "../src/server/db/schemas";
-import { chunks, documents } from "../src/server/db/schemas/rag";
+import { embeddingModel } from "../src/server/model.ts";
+import * as schema from "../src/server/db/schemas/index.ts";
+import { chunks, documents } from "../src/server/db/schemas/rag.ts";
 
 const SIMILARITY_THRESHOLD = 0.3;
 

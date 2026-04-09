@@ -1,0 +1,17 @@
+# yaml-language-server: $schema=https://promptfoo.dev/config-schema.json
+description: "RAG Eval"
+
+prompts:
+  - "{{ query }}"
+
+providers:
+  - file://retrieval-provider.ts
+
+tests:
+  - vars:
+      query: What's the example used in the MDN docs to demonstrate how to declare a variable?
+    assert:
+      - type: contains-all
+        value:
+          - grammar_and_types/index.md_chunk_7
+          - language_overview/index.md_chunk_14
