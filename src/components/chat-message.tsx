@@ -1,6 +1,9 @@
 import ReactMarkdown, { type Components } from "react-markdown";
 import { useState } from "react";
 import { BookOpenIcon, SearchIcon } from "lucide-react";
+import remarkGfm from "remark-gfm";
+import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
+import { nightOwl } from "react-syntax-highlighter/dist/esm/styles/prism";
 
 import type { OurMessage } from "~/server/agent/types";
 
@@ -29,19 +32,29 @@ const components: Components = {
     <ol className="mb-4 list-decimal pl-4 text-gray-800">{children}</ol>
   ),
   li: ({ children }) => <li className="mb-1 text-gray-700">{children}</li>,
-  code: ({ className, children, ...props }) => (
-    <code
-      className={`rounded bg-gray-100 px-1.5 py-0.5 font-mono text-sm text-gray-900 ${className ?? ""}`}
-      {...props}
-    >
-      {children}
-    </code>
-  ),
-  pre: ({ children }) => (
-    <pre className="mb-4 overflow-x-auto rounded-lg bg-gray-900 p-4 text-gray-100">
-      {children}
-    </pre>
-  ),
+  code: ({ className, children, ...props }) => {
+    const match = /language-(\w+)/.exec(className ?? "");
+    if (match) {
+      return (
+        <SyntaxHighlighter
+          style={nightOwl}
+          language={match[1]}
+          PreTag="div"
+          className="mb-4 rounded-lg text-sm"
+        >
+          {String(children).replace(/\n$/, "")}
+        </SyntaxHighlighter>
+      );
+    }
+    return (
+      <code
+        className="rounded bg-gray-100 px-1.5 py-0.5 font-mono text-sm text-gray-900"
+        {...props}
+      >
+        {children}
+      </code>
+    );
+  },
   a: ({ children, ...props }) => (
     <a
       className="text-blue-600 underline transition-colors hover:text-blue-800"
@@ -55,7 +68,11 @@ const components: Components = {
 };
 
 const Markdown = ({ children }: { children: string }) => {
-  return <ReactMarkdown components={components}>{children}</ReactMarkdown>;
+  return (
+    <ReactMarkdown remarkPlugins={[remarkGfm]} components={components}>
+      {children}
+    </ReactMarkdown>
+  );
 };
 
 const Sources = ({ sources }: { sources: Source[] }) => {
