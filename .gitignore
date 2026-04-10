@@ -50,3 +50,5 @@ yarn-error.log*
 .env.sentry-build-plugin
 .trees
 .devtools
+
+mdn/
