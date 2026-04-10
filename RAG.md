@@ -71,3 +71,9 @@ We define Top-K (which is the limit of documents to retrieve) for the query:
 3. Context Relevance
 
 We'll use [PromptFoo](https://www.promptfoo.dev/docs/guides/evaluate-rag/) for evaluation
+
+# Strategies for improving RAG result
+1. Adding BM25 search to the retrieval step cf. [Hybrid Search](https://docs.weaviate.io/weaviate/concepts/search/hybrid-search)
+2. Using Reciprocal Rank Fusion (RRF) to combine BM25 and vector search results
+3. Generating contextual embeddings cf. [Contextual Retrieval](https://www.anthropic.com/engineering/contextual-retrieval)
+4. Implementing Re-ranking at the end of the retrieval process with specialized models cf. [Reranker](https://docs.voyageai.com/docs/reranker)
